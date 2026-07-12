@@ -184,7 +184,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v9"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v10"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -432,6 +432,13 @@ function startRound(){
   getFix(); render();
 }
 function endRound(){S.activeId=null;save();ui.tab="stats";render();}
+function switchCourse(){
+  const a=active(); if(!a)return;
+  const idx=S.courses.findIndex(c=>c.id===a.courseId);
+  const next=S.courses[(idx+1)%S.courses.length]||S.courses[0];
+  a.courseId=next.id; a.courseName=next.name; save(); render();
+  toast(`Round moved to ${next.name.replace("Sunningdale ","")}`);
+}
 function changeHole(h){
   ui.hole=h;
   const a=active();
@@ -808,7 +815,10 @@ function rLog(){
 
   <div style="padding:8px 16px 24px;display:flex;justify-content:space-between;align-items:center">
     <span style="font-size:11.5px;color:var(--faint)">${(()=>{const rv=runningVsPar(a);return rv?`<b style="color:${rv.diff>0?"var(--flag)":"var(--green)"}">${rv.diff>0?"+"+rv.diff:rv.diff===0?"E":rv.diff}</b> thru ${rv.n} · `:"";})()}${esc(a.courseName)} · ${a.shots.length} shots</span>
-    <button class="ghost" onclick="endRound()">End round</button>
+    <span style="display:flex;gap:14px">
+      <button class="ghost g" onclick="switchCourse()">⇄ course</button>
+      <button class="ghost" onclick="endRound()">End round</button>
+    </span>
   </div>`;
 }
 
