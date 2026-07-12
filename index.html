@@ -64,6 +64,7 @@ input{font-family:var(--mono)}
 
 .chip{padding:11px 0;font-size:15px;background:#fff;color:var(--ink);border:1.5px solid var(--line);border-radius:6px}
 .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:700}
+.chip.sugg{border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold) inset}
 .chip.lie{font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:.05em}
 .chip.lie.on{background:var(--sage);border-color:var(--sage)}
 
@@ -183,6 +184,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
+const APP_VERSION = "v9"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -443,13 +445,31 @@ function keypad(k){
 }
 function pickClub(c){ ui.club=c; updateFocusUI(); }
 function pickLie(l){ ui.lie=l; updateFocusUI(); }
+// suggest a club from the club book (pure yards on target-marked shots) for the typed yardage
+function suggestClub(yds){
+  if(!yds||yds<30)return null;
+  let best=null,bestDiff=18; // within 18 yds
+  for(const cl of S.clubs){
+    const ss=S.rounds.flatMap(r=>r.shots).filter(s=>s.c===cl&&s.r==="target"&&s.d);
+    if(ss.length<3)continue; // need a few data points before trusting
+    const pure=ss.reduce((a,s)=>a+s.d,0)/ss.length;
+    const diff=Math.abs(pure-yds);
+    if(diff<bestDiff){bestDiff=diff;best=cl;}
+  }
+  return best;
+}
+function useGreenDist(n){ ui.dist=String(n); updateFocusUI(); }
 // targeted DOM updates — no full re-render, no flicker mid-entry
 function updateFocusUI(){
   const rd=document.getElementById("distread");
   if(rd){ rd.textContent=ui.dist||"—"; rd.style.color=ui.dist?"var(--ink)":"#C9C7B8"; }
   const dl=document.getElementById("distlbl");
   if(dl)dl.style.color=ui.dist?"var(--green)":"var(--faint)";
-  document.querySelectorAll("[data-club]").forEach(b=>b.classList.toggle("on",b.dataset.club===ui.club));
+  const sugg=(ui.dist.length>=2)?suggestClub(parseInt(ui.dist,10)):null;
+  document.querySelectorAll("[data-club]").forEach(b=>{
+    b.classList.toggle("on",b.dataset.club===ui.club);
+    b.classList.toggle("sugg",!ui.club&&b.dataset.club===sugg);
+  });
   document.querySelectorAll("[data-lie]").forEach(b=>b.classList.toggle("on",b.dataset.lie===ui.lie));
   const stage=(!ui.dist&&!ui.club)?"dist":(!ui.club?"club":"result");
   for(const[id,st]of[["step-dist","dist"],["step-club","club"],["step-result","result"]]){
@@ -493,9 +513,18 @@ function setPutts(n){
 }
 function setScore(n){
   const a=active(); if(!a)return;
-  a.scores[ui.hole]=(a.scores[ui.hole]===n)?undefined:n;
+  const wasSet=a.scores[ui.hole]===n;
+  a.scores[ui.hole]=wasSet?undefined:n;
   if(a.scores[ui.hole]===undefined)delete a.scores[ui.hole];
-  save(); render();
+  save();
+  // score entered = hole done → auto-advance after a beat
+  if(!wasSet && ui.hole<18){
+    const from=ui.hole;
+    render();
+    setTimeout(()=>{ if(active()&&ui.hole===from){ changeHole(from+1); toast(`→ Hole ${from+1}`); } },900);
+  }else{
+    render();
+  }
 }
 // suggested hole score = logged swings + putts + penalty strokes
 function suggScore(r,h){
@@ -542,10 +571,6 @@ function undoLast(){
 function deleteShot(rid,sid){
   const r=S.rounds.find(x=>x.id===rid); if(!r)return;
   r.shots=r.shots.filter(s=>s.id!==sid); save(); render();
-}
-function cyclePar(cid,i){
-  const c=S.courses.find(x=>x.id===cid); if(!c)return;
-  c.pars[i]=c.pars[i]===3?4:c.pars[i]===4?5:3; save(); render();
 }
 function startRename(cid){const c=S.courses.find(x=>x.id===cid);ui.renaming=cid;render();
   setTimeout(()=>{const el=document.getElementById("rn-"+cid);if(el){el.value=c.name;el.focus();}},50);}
@@ -642,7 +667,7 @@ function renderStatus(){
   const el=document.getElementById("topstatus");const a=active();
   let g="";
   if(ui.gpsFix&&Date.now()-ui.gpsAt<120000)g=` · GPS±${Math.round(ui.gpsFix.acc)}m`;
-  el.textContent=a?`LIVE${g}`:"IDLE";
+  el.textContent=`${APP_VERSION} · ${a?"LIVE":"IDLE"}${g}`;
   el.style.color=a?"#F0B429":"#8FA093";
 }
 function renderGreenDist(){
@@ -654,6 +679,12 @@ function renderGreenDist(){
   }else{
     const g=greenPts(activeCourse(),ui.hole);
     el.innerHTML=`<span class="gk">${g?"tap ⟳ for<br>green dist":"green<br>not tagged"}</span>`;
+  }
+  // one-tap yardage fill from live green distance
+  const u=document.getElementById("usedist");
+  if(u){
+    const n=d?(d.center??d.front):null;
+    u.innerHTML=n!=null?`<button class="chip" style="padding:5px 10px;font-size:11.5px;border-color:var(--green);color:var(--green)" onclick="useGreenDist(${n})">USE ${n}</button>`:"";
   }
 }
 function renderTabs(){
@@ -720,7 +751,7 @@ function rLog(){
   <div class="step ${stage==="dist"?"next":""}" id="step-dist" style="margin:8px 6px 0;padding:8px 10px 4px">
     <div style="display:flex;gap:12px;align-items:stretch">
       <div style="flex:0 0 45%">
-        <div class="label" style="margin-bottom:0">1 · YARDAGE</div>
+        <div class="label" style="margin-bottom:0">1 · YARDAGE <span id="usedist" style="margin-left:auto"></span></div>
         <div id="distread" style="font-size:70px;font-weight:700;line-height:1;margin:5px 0 2px;min-height:70px;color:${ui.dist?"var(--ink)":"#C9C7B8"}">${ui.dist||"—"}</div>
         <div id="distlbl" style="font-family:var(--cond);font-size:14px;letter-spacing:.2em;font-weight:700;color:${ui.dist?"var(--green)":"var(--faint)"}">YARDS TO TARGET</div>
       </div>
@@ -1013,7 +1044,7 @@ function rStats(){
 // ---------- COURSES ----------
 function rCourses(){
   return `<div class="sechead"><span class="t">COURSES</span></div>
-  <div class="note" style="padding-top:0">Tap a par to cycle 3 → 4 → 5. Tag greens from the LOG screen while standing on each green (once per course — takes two rounds to cover both tracks).</div>
+  <div class="note" style="padding-top:0">Pars are locked to the official scorecards. ⛳ shows greens tagged — tag them from the LOG screen while standing on each green.</div>
   ${S.courses.map(c=>`<div class="card">
     <div style="padding:10px 12px;background:#F1EFE4;display:flex;justify-content:space-between;align-items:center">
       ${ui.renaming===c.id
@@ -1026,9 +1057,8 @@ function rCourses(){
       </span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(9,1fr)">
-      ${c.pars.map((p,i)=>`<button class="parbtn" onclick="cyclePar('${c.id}',${i})"
-        style="background:${p===3?"#EAF2EC":p===5?"#F6EFDC":"#fff"};${(i+1)%9!==0?"border-right:1px solid var(--line)":""}">
-        <small>${i+1}${c.greens[i+1]?" ⛳":""}</small><b>${p}</b></button>`).join("")}
+      ${c.pars.map((p,i)=>`<div class="parbtn" style="background:${p===3?"#EAF2EC":p===5?"#F6EFDC":"#fff"};${(i+1)%9!==0?"border-right:1px solid var(--line)":""}">
+        <small>${i+1}${c.greens[i+1]?" ⛳":""}</small><b>${p}</b></div>`).join("")}
     </div>
   </div>`).join("")}
   <div style="padding:16px"><button class="ghost g" onclick="exportCSV()">Export all data to CSV ↓</button></div>`;
