@@ -116,6 +116,25 @@ input{font-family:var(--mono)}
   border:2px solid var(--line);border-radius:10px;color:var(--ink)}
 .bigclub:active{background:var(--green);color:var(--paper);border-color:var(--green)}
 
+/* hole review cards (quick mode) */
+.rev{margin:8px 0 0;border:2px solid var(--line);border-left-width:5px;border-radius:9px;background:#fff;padding:8px 10px}
+.rev.pending{border-left-color:#E0B33C}
+.rev.done{border-left-color:var(--green)}
+.rev .rl1{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.rev .rl1 b{font-family:var(--cond);font-size:19px;letter-spacing:.04em}
+.rev .ryd{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:13px}
+.rev .ryd button{width:34px;height:30px;border:1.5px solid var(--line);border-radius:6px;background:#fff;font-size:16px;color:var(--ink)}
+.rev .ryd .val{min-width:58px;text-align:center;font-weight:700}
+.rev .ryd .val small{display:block;font-size:8.5px;font-weight:400;color:var(--faint)}
+.minirow{display:grid;gap:4px;margin-top:4px}
+.mini{padding:7px 0 5px;border:1.5px solid var(--line);border-radius:6px;background:#fff;text-align:center;line-height:1.1}
+.mini b{display:block;font-size:13px}
+.mini small{display:block;font-size:8px;color:var(--faint);letter-spacing:.05em}
+.mini.on{background:var(--ink);border-color:var(--ink)}
+.mini.on b,.mini.on small{color:var(--paper)}
+.mini.on.tgt{background:var(--green);border-color:var(--green)}
+.mini.on.pen{background:var(--flag);border-color:var(--flag)}
+
 /* backfill sheet */
 #fillsheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--paper);max-width:520px;margin:0 auto;
   border-radius:16px 16px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);padding:14px 16px calc(18px + env(safe-area-inset-bottom));
@@ -204,7 +223,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v12"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v13"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -599,6 +618,48 @@ function fillResult(resKey){
 function closeFillDom(){["fillsheet","fillscrim"].forEach(i=>{const e=document.getElementById(i);if(e)e.remove();});}
 function closeFill(){closeFillDom();fillCtx=null;render();}
 
+// ----- inline hole review (quick mode): edit any stroke, any order -----
+function rvShot(sid){const a=active();return a&&a.shots.find(x=>x.id===sid);}
+function rvLie(sid,l){
+  const s=rvShot(sid); if(!s)return;
+  s.lie=l; save();
+  document.querySelectorAll(`[data-sid="${sid}"] [data-rvlie]`).forEach(b=>b.classList.toggle("on",b.dataset.rvlie===l));
+}
+function rvRes(sid,rk){
+  const s=rvShot(sid); if(!s)return;
+  const a=active();
+  s.r=(s.r===rk)?null:rk;
+  if(s.r&&s.d==null){const ad=autoDist(a,s); if(ad!=null){s.d=ad;s.dsrc="gps";rvYdUI(sid,s);}}
+  save();
+  const card=document.querySelector(`[data-sid="${sid}"]`);
+  if(card){
+    card.querySelectorAll("[data-rvres]").forEach(b=>{
+      const on=b.dataset.rvres===s.r;
+      b.classList.toggle("on",on);
+      b.classList.toggle("tgt",on&&s.r==="target");
+      b.classList.toggle("pen",on&&s.r==="penalty");
+    });
+    card.classList.toggle("done",!!s.r);
+    card.classList.toggle("pending",!s.r);
+  }
+}
+function rvD(sid,delta){
+  const s=rvShot(sid); if(!s)return;
+  const a=active();
+  if(s.d==null){ s.d=autoDist(a,s)??100; s.dsrc=s.dsrc||"gps"; }
+  else { s.d=Math.max(5,Math.min(650,s.d+delta)); s.dsrc="edit"; }
+  save(); rvYdUI(sid,s);
+}
+function rvYdUI(sid,s){
+  const v=document.querySelector(`[data-sid="${sid}"] .val`);
+  if(v)v.innerHTML=`${s.d??"—"}${s.d!=null?"y":""}<small>${s.dsrc==="gps"?"auto":s.dsrc==="edit"?"edited":"&nbsp;"}</small>`;
+}
+function rvDel(sid){
+  const a=active(); if(!a)return;
+  a.shots=a.shots.filter(x=>x.id!==sid); save(); render();
+  toast("Stroke removed");
+}
+
 function logShot(resKey){
   const a=active(); if(!a)return;
   if(!ui.club){toast("Pick a club first");return;}
@@ -874,18 +935,43 @@ function rLog(){
     <button class="${S.logMode!=="quick"?"on":""}" onclick="setLogMode('full')">⌨ FULL DETAIL</button>
   </div>
 
-  ${holeShots.length?`<div style="padding:8px 16px 0">
+  ${S.logMode!=="quick"&&holeShots.length?`<div style="padding:8px 16px 0">
     <div class="trace">${holeShots.map((s,i)=>`<span class="${!s.r?"pending":s.r==="penalty"?"pen":s.r==="target"?"tgt":""}" onclick="openFill('${a.id}','${s.id}')">${i+1}·${esc(s.c)} ${s.r?RICON[s.r]:"…"}${s.d?" "+s.d+"y":""}</span>`).join("")}</div>
     ${holeShots.some(s=>!s.r)?`<div style="font-size:10.5px;color:#8A6D1A;padding-top:4px">tap an amber shot to fill lie & result</div>`:""}
   </div>`:""}
 
   ${S.logMode==="quick"?`
   <div style="padding:10px 16px 0">
-    <div class="label">TAP CLUB AS YOU PLAY <span style="letter-spacing:0;font-size:10px;font-weight:400">(drops GPS pin — details later)</span></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-      ${S.clubs.map(cl=>`<button class="bigclub" onclick="logQuick('${cl}')">${cl}</button>`).join("")}
+    <div class="label">TAP CLUB AS YOU PLAY <span style="letter-spacing:0;font-size:10px;font-weight:400">(drops GPS pin — details below, anytime)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">
+      ${S.clubs.map(cl=>`<button class="bigclub" style="padding:15px 0;font-size:19px" onclick="logQuick('${cl}')">${cl}</button>`).join("")}
     </div>
-  </div>`:`
+  </div>
+
+  ${holeShots.length?`<div style="padding:12px 16px 0">
+    <div class="label">HOLE ${ui.hole} REVIEW — CONFIRM EACH STROKE, ANY ORDER</div>
+    ${holeShots.map((s,i)=>{
+      const ad=s.d??autoDist(a,s);
+      return `<div class="rev ${s.r?"done":"pending"}" data-sid="${s.id}">
+      <div class="rl1"><b>${i+1} · ${esc(s.c)}</b>
+        <span class="ryd">
+          <button onclick="rvD('${s.id}',-5)">−</button>
+          <span class="val">${s.d??(ad?ad:"—")}${(s.d??ad)!=null?"y":""}<small>${s.d==null&&ad?"auto?":s.dsrc==="gps"?"auto":s.dsrc==="edit"?"edited":"&nbsp;"}</small></span>
+          <button onclick="rvD('${s.id}',5)">+</button>
+        </span>
+        <button onclick="rvDel('${s.id}')" style="background:none;border:none;color:#B8B5A4;font-size:17px;padding:0 2px">×</button>
+      </div>
+      <div class="minirow" style="grid-template-columns:repeat(5,1fr)">
+        ${LIES.map(l=>`<button data-rvlie="${l.key}" class="mini ${s.lie===l.key?"on":""}" onclick="rvLie('${s.id}','${l.key}')"><b>${l.label.toUpperCase()}</b></button>`).join("")}
+      </div>
+      <div class="minirow" style="grid-template-columns:repeat(7,1fr)">
+        ${RESULTS.map(x=>{const IC={target:"◎",short:"↓",long:"↑",left:"←",right:"→",mishit:"✕",penalty:"⚠"}[x.key];
+          const LB={target:"TARGET",short:"SHORT",long:"LONG",left:"LEFT",right:"RIGHT",mishit:"FAT/TH",penalty:"PENAL"}[x.key];
+          const on=s.r===x.key;
+          return `<button data-rvres="${x.key}" class="mini ${on?"on":""} ${on&&x.key==="target"?"tgt":""} ${on&&x.key==="penalty"?"pen":""}" onclick="rvRes('${s.id}','${x.key}')"><b>${IC}</b><small>${LB}</small></button>`;}).join("")}
+      </div>
+    </div>`;}).join("")}
+  </div>`:""}`:`
   <div class="step ${stage==="dist"?"next":""}" id="step-dist" style="margin:8px 6px 0;padding:8px 10px 4px">
     <div style="display:flex;gap:12px;align-items:stretch">
       <div style="flex:0 0 45%">
