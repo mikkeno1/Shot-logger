@@ -1,5 +1,5 @@
 // Shot Logger service worker — cache-first app shell for offline use on course
-const CACHE = "shotlogger-v13";
+const CACHE = "shotlogger-v14";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

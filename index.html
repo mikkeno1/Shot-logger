@@ -223,7 +223,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v13"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v14"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -351,8 +351,24 @@ function setGreenPt(part){
     if(!g||g.lat!=null) g = g? {center:{lat:g.lat,lng:g.lng}} : {};  // migrate legacy single-point tag
     g[part]={lat:f.lat,lng:f.lng};
     c.greens[ui.hole]=g; save();
-    toast(`Green ${ui.hole} ${part.toUpperCase()} tagged ±${Math.round(f.acc)}m ✓`); renderGreenDist();
+    const n=backfillDists(c.id, ui.hole);
+    toast(`Green ${ui.hole} ${part.toUpperCase()} tagged ±${Math.round(f.acc)}m ✓${n?` · ${n} yardages backfilled`:""}`);
+    renderGreenDist();
   }, 9000, 4);
+}
+// once a green exists, stamp GPS-derived yardage on any past pinned shots that lack one
+function backfillDists(courseId, hole){
+  let n=0;
+  for(const r of S.rounds){
+    if(r.courseId!==courseId)continue;
+    for(const s of r.shots){
+      if(s.h!==hole||s.d!=null||s.lat==null)continue;
+      const ad=autoDist(r,s);
+      if(ad!=null){s.d=ad;s.dsrc="gps";n++;}
+    }
+  }
+  if(n)save();
+  return n;
 }
 // normalized green points for a hole: {front?,center?,back?}; legacy {lat,lng} = center
 function greenPts(c,h){
