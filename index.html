@@ -174,11 +174,19 @@ input{font-family:var(--mono)}
 #mapdiv{flex:1}
 #mapov .bar{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--ink)}
 #mapov .bar button{flex:1;padding:14px 0;border-radius:8px;border:none;font-family:var(--cond);font-size:19px;font-weight:700;letter-spacing:.08em}
+#mapov .maparea{position:relative;flex:1;min-height:0}
+#mapov #mapdiv{position:absolute;inset:0;height:auto}
 #mapov .cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;pointer-events:none;
-  width:34px;height:34px}
-#mapov .cross::before,#mapov .cross::after{content:"";position:absolute;background:#F0B429}
-#mapov .cross::before{left:50%;top:0;bottom:0;width:2px;transform:translateX(-1px)}
-#mapov .cross::after{top:50%;left:0;right:0;height:2px;transform:translateY(-1px)}
+  width:40px;height:40px}
+#mapov .cross::before,#mapov .cross::after{content:"";position:absolute;background:#F5C451;
+  box-shadow:0 0 3px rgba(0,0,0,.85)}
+#mapov .cross::before{left:50%;top:0;bottom:0;width:1.5px;transform:translateX(-.75px)}
+#mapov .cross::after{top:50%;left:0;right:0;height:1.5px;transform:translateY(-.75px)}
+#mapov .cross i{position:absolute;top:50%;left:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;
+  border:1.5px solid #F5C451;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.85)}
+#mapov .lyrbtn{position:absolute;right:10px;top:calc(58px + env(safe-area-inset-top));z-index:1000;
+  background:rgba(8,18,13,.86);color:#EAF2EC;border:1px solid rgba(255,255,255,.18);border-radius:9px;
+  font-family:var(--mono);font-size:11px;padding:8px 11px;backdrop-filter:blur(10px)}
 #mapov .hint{position:absolute;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:1000;
   background:rgba(21,32,26,.9);color:var(--paper);font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:8px;white-space:nowrap}
 #mapov .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:var(--ink);-webkit-overflow-scrolling:touch}
@@ -372,7 +380,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v17"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v18"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -561,7 +569,9 @@ function openMapFor(roundId, hole){
   const ov=document.createElement("div");
   ov.id="mapov";
   ov.innerHTML=`<div class="hint" id="maphint">Hole ${hole} — tap a shot below to place it</div>
-    <div class="cross" id="mapcross" style="display:none"></div><div id="mapdiv"></div>
+    <button class="lyrbtn" id="lyrbtn" onclick="cycleBase('shot')">🛰 ${curBase().name}</button>
+    <div class="maparea"><div id="mapdiv"></div>
+      <div class="cross" id="mapcross" style="display:none"><i></i></div></div>
     <div class="chips" id="mapchips"></div>
     <div class="bar">
       <button style="background:#3A4A40;color:var(--paper)" onclick="closeMap()">CLOSE</button>
@@ -569,7 +579,8 @@ function openMapFor(roundId, hole){
     </div>`;
   document.body.appendChild(ov);
   mapObj=L.map("mapdiv",{center:[ctr.lat,ctr.lng],zoom:18,zoomControl:false,attributionControl:false});
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19}).addTo(mapObj);
+  addBase(mapObj);
+  mapObj.on("click",e=>{ if(mapCtx&&mapCtx.sel)mapPlace(e.latlng); });
   drawHole();
   renderMapChips();
 }
@@ -612,7 +623,7 @@ function renderMapChips(){
   const hint=document.getElementById("maphint"), cross=document.getElementById("mapcross"), ok=document.getElementById("mapok");
   if(mapCtx.sel){
     const label=mapCtx.sel==="end"?"final ball position":"shot "+(holeShots.findIndex(s=>s.id===mapCtx.sel)+1)+" — where you hit FROM";
-    hint.textContent="Pan crosshair to "+label;
+    hint.textContent="Tap the map at "+label;
     cross.style.display="block"; ok.style.display="block";
   }else{
     hint.textContent="Hole "+mapCtx.hole+" — tap a shot below to place it";
@@ -629,9 +640,9 @@ function mapSelect(id){
   }
   renderMapChips();
 }
-function confirmMap(){
+function confirmMap(){ if(mapObj&&mapCtx&&mapCtx.sel)mapPlace(mapObj.getCenter()); }
+function mapPlace(p){
   const r=mapRound(); if(!r||!mapCtx.sel)return;
-  const p=mapObj.getCenter();
   const holeShots=r.shots.filter(s=>s.h===mapCtx.hole);
   if(mapCtx.sel==="end"){
     const last=holeShots[holeShots.length-1];
@@ -653,6 +664,33 @@ function closeMap(){
 }
 
 
+
+// ---------- basemaps ----------
+const BASEMAPS=[
+  {id:"on",  name:"Ontario 16cm · 2025", url:"https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_Imagery/Ontario_Imagery_Web_Map_Service/MapServer/tile/{z}/{y}/{x}", maxNative:20},
+  {id:"esri",name:"Esri World Imagery",  url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxNative:19},
+  {id:"clar",name:"Esri Clarity",        url:"https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxNative:19},
+];
+function curBase(){ return BASEMAPS.find(b=>b.id===(S.basemap||"on"))||BASEMAPS[0]; }
+function addBase(map){
+  const b=curBase();
+  let errs=0;
+  const layer=L.tileLayer(b.url,{maxZoom:22,maxNativeZoom:b.maxNative}).addTo(map);
+  layer.on("tileerror",()=>{
+    if(++errs===6&&b.id!=="esri"){ S.basemap="esri"; save(); toast("Imagery unavailable — switched to Esri");
+      map.removeLayer(layer); addBase(map); }
+  });
+  return layer;
+}
+function cycleBase(which){
+  const i=BASEMAPS.findIndex(b=>b.id===(S.basemap||"on"));
+  S.basemap=BASEMAPS[(i+1)%BASEMAPS.length].id; save();
+  const map = which==="green"?gmObj:mapObj;
+  if(map){ map.eachLayer(l=>{ if(l instanceof L.TileLayer)map.removeLayer(l); }); addBase(map); }
+  const btn=document.getElementById("lyrbtn"); if(btn)btn.textContent="🛰 "+curBase().name;
+  toast(curBase().name);
+}
+
 // ---------- satellite green setup (pre-tag from the couch) ----------
 let gmObj=null, gmCtx=null, gmLayers=[];
 function openGreenMap(courseId,hole){
@@ -663,8 +701,10 @@ function openGreenMap(courseId,hole){
   const ctr=gmCenter(c,hole);
   const ov=document.createElement("div");
   ov.id="mapov";
-  ov.innerHTML=`<div class="hint" id="gmhint">Green ${hole} — tap F / C / B, then pan crosshair</div>
-    <div class="cross" id="gmcross" style="display:none"></div><div id="mapdiv"></div>
+  ov.innerHTML=`<div class="hint" id="gmhint">Green ${hole} — tap F / C / B, then tap the green</div>
+    <button class="lyrbtn" id="lyrbtn" onclick="cycleBase('green')">🛰 ${curBase().name}</button>
+    <div class="maparea"><div id="mapdiv"></div>
+      <div class="cross" id="gmcross" style="display:none"><i></i></div></div>
     <div class="chips" id="gmchips"></div>
     <div class="bar">
       <button style="background:#2A3A31;color:var(--tx)" onclick="gmHole(-1)">‹ HOLE</button>
@@ -674,7 +714,8 @@ function openGreenMap(courseId,hole){
     </div>`;
   document.body.appendChild(ov);
   gmObj=L.map("mapdiv",{center:[ctr.lat,ctr.lng],zoom:ctr.z,zoomControl:false,attributionControl:false});
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19}).addTo(gmObj);
+  addBase(gmObj);
+  gmObj.on("click",e=>{ if(gmCtx&&gmCtx.sel)gmPlace(e.latlng); });
   gmDraw(); gmChips();
 }
 // centring: this hole's tags > nearest tagged green > live GPS > saved anchor > London approx
@@ -729,10 +770,10 @@ function gmChips(){
     +(dep?`<span style="flex-shrink:0;padding:9px 12px;font-family:var(--mono);font-size:12px;color:#8FE3AF">depth ${dep}y</span>`:"");
   const hint=document.getElementById("gmhint"),cross=document.getElementById("gmcross"),ok=document.getElementById("gmok");
   if(gmCtx.sel){
-    hint.textContent=`Hole ${gmCtx.hole} — centre crosshair on ${gmCtx.sel.toUpperCase()} of green`;
+    hint.textContent=`Tap the ${gmCtx.sel.toUpperCase()} edge of green ${gmCtx.hole}`;
     cross.style.display="block"; ok.style.display="block";
   }else{
-    hint.textContent=`Green ${gmCtx.hole} — tap F / C / B, then pan crosshair`;
+    hint.textContent=`Green ${gmCtx.hole} — tap F / C / B to place`;
     cross.style.display="none"; ok.style.display="none";
   }
 }
@@ -743,9 +784,9 @@ function gmSelect(k){
   if(gmCtx.sel&&g&&g[gmCtx.sel])gmObj.panTo([g[gmCtx.sel].lat,g[gmCtx.sel].lng]);
   gmChips();
 }
-function gmConfirm(){
+function gmConfirm(){ if(gmObj&&gmCtx&&gmCtx.sel)gmPlace(gmObj.getCenter()); }
+function gmPlace(p){
   const c=S.courses.find(x=>x.id===gmCtx.courseId); if(!c||!gmCtx.sel)return;
-  const p=gmObj.getCenter();
   let g=c.greens[gmCtx.hole];
   if(!g||g.lat!=null) g = g? {center:{lat:g.lat,lng:g.lng}} : {};
   g[gmCtx.sel]={lat:p.lat,lng:p.lng};
