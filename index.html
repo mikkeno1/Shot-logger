@@ -188,6 +188,155 @@ input{font-family:var(--mono)}
 .pinbadge{background:#F0B429;color:#15201A;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;
   font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;border:2px solid #15201A;box-shadow:0 1px 4px rgba(0,0,0,.5)}
 .pinbadge.end{background:#FBFBF6;border-color:#B7222F;color:#B7222F}
+
+
+/* ============ v16 — dark premium theme ============ */
+:root{
+  --bg:#0A1410; --bg2:#0F1D17; --card:rgba(255,255,255,.055); --cardln:rgba(255,255,255,.10);
+  --tx:#EAF2EC; --tx2:#8FA79A; --lime:#8FE3AF; --gold:#F5C451; --rose:#FF6B7A; --amber:#E9A23B;
+}
+html,body{background:
+  radial-gradient(1100px 620px at 78% -12%, #1B5B39 0%, rgba(27,91,57,0) 62%),
+  radial-gradient(900px 520px at -14% 8%, #12513A 0%, rgba(18,81,58,0) 58%),
+  linear-gradient(180deg,#0A1410 0%,#0C1712 60%,#0A1410 100%);
+  background-attachment:fixed; color:var(--tx);
+  padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body{-webkit-font-smoothing:antialiased}
+
+.topbar{background:rgba(8,17,13,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(255,255,255,.07);box-shadow:none;color:var(--tx)}
+.topbar .brand{background:linear-gradient(92deg,#8FE3AF,#F5C451);-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;font-size:22px}
+
+/* glass cards */
+.step,.rev,.card,.glass{background:var(--card);border:1px solid var(--cardln);border-radius:18px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.07)}
+.step{border-color:var(--cardln)}
+.step.next{border-color:rgba(245,196,81,.55);background:rgba(245,196,81,.09);
+  box-shadow:0 10px 30px rgba(0,0,0,.34),0 0 0 1px rgba(245,196,81,.25),inset 0 1px 0 rgba(255,255,255,.08)}
+.step.next .label{color:var(--gold)} .step.next .label::before{content:"▶";font-size:9px}
+.step.done .label{color:var(--lime)} .step.done .label::after{content:"✓"}
+.label{color:var(--tx2)}
+
+/* hero */
+.hero{margin:12px 12px 0;border-radius:20px;padding:14px 16px;
+  background:linear-gradient(135deg,rgba(20,81,45,.92),rgba(9,38,24,.88));
+  border:1px solid rgba(143,227,175,.22);
+  box-shadow:0 14px 38px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10)}
+.hero .num{font-size:56px;background:linear-gradient(180deg,#fff,#A8D9BC);-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent}
+.hero .num small{color:var(--lime);opacity:.8}
+.hero .mid .l1{color:#fff} .hero .mid .l2{color:#9EBCAA}
+.hero .gd b{color:var(--lime);text-shadow:0 0 18px rgba(143,227,175,.45)}
+.hero .gd .gk{color:#7E9C8C}
+
+/* hole strip */
+.holestrip{border-bottom:none;padding:12px 12px 6px;gap:6px}
+.holestrip button{border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+  color:var(--tx);min-width:46px;padding:7px 0 6px}
+.holestrip button small{color:var(--tx2)}
+.holestrip button.p3 small{color:var(--lime)} .holestrip button.p5 small{color:var(--gold)}
+.holestrip button.played{background:rgba(143,227,175,.14);border-color:rgba(143,227,175,.28)}
+.holestrip button.cur{background:linear-gradient(160deg,#F5C451,#E09B2D);border-color:transparent;
+  box-shadow:0 6px 18px rgba(233,162,59,.42)}
+.holestrip button.cur b{color:#14210F} .holestrip button.cur small{color:rgba(20,33,15,.72)}
+
+/* controls */
+.chip,.resbtn,.mini,.bigclub,.keypad button,.modebar button{
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);color:var(--tx);
+  border-radius:12px;transition:transform .08s ease,box-shadow .12s ease,background .12s ease}
+.chip:active,.resbtn:active,.mini:active,.bigclub:active,.keypad button:active{transform:scale(.94)}
+.keypad button{font-size:20px}
+.keypad button.bk{background:rgba(255,255,255,.03);color:var(--tx2)}
+.chip.on{background:linear-gradient(160deg,#F5C451,#DE9A2B);color:#14210F;border-color:transparent;
+  font-weight:700;box-shadow:0 5px 16px rgba(233,162,59,.36)}
+.chip.sugg{border-color:rgba(245,196,81,.75);box-shadow:0 0 0 1px rgba(245,196,81,.45) inset}
+.chip.lie.on{background:linear-gradient(160deg,#3E8F63,#2A6B48);color:#fff}
+.bigclub{padding:17px 0;font-size:20px;font-weight:600;border-radius:15px;
+  background:linear-gradient(165deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+  box-shadow:0 6px 16px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.10)}
+.bigclub:active{background:linear-gradient(165deg,#3E8F63,#22593B);border-color:transparent}
+.resbtn{font-size:19px;padding:15px 0}
+.resbtn.target{background:linear-gradient(160deg,#3FBF7A,#1F8A52);color:#06180E;border-color:transparent;
+  box-shadow:0 7px 20px rgba(63,191,122,.32)}
+.resbtn.warm{background:rgba(233,162,59,.16);color:#F0BE72;border-color:rgba(233,162,59,.34)}
+.resbtn.rust{background:rgba(255,138,92,.14);color:#FFAE8A;border-color:rgba(255,138,92,.30)}
+.resbtn.mish{background:rgba(255,255,255,.05);color:#BFCFC5;border-color:rgba(255,255,255,.13)}
+.resbtn.pen{background:rgba(255,107,122,.15);color:var(--rose);border-color:rgba(255,107,122,.34)}
+.modebar button{color:var(--tx2);font-size:16px}
+.modebar button.on{background:linear-gradient(160deg,rgba(143,227,175,.22),rgba(63,191,122,.12));
+  color:var(--lime);border-color:rgba(143,227,175,.4)}
+
+/* review cards */
+.rev{padding:10px 12px;margin-top:9px;border-left:none;position:relative;overflow:hidden}
+.rev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.rev.pending::before{background:linear-gradient(180deg,#F5C451,#D98F22)}
+.rev.done::before{background:linear-gradient(180deg,#8FE3AF,#2E9A5F)}
+.rev .rl1 b{color:#fff;font-size:20px}
+.rev .ryd button{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:var(--tx);border-radius:8px}
+.rev .ryd .val{color:var(--lime)} .rev .ryd .val small{color:var(--tx2)}
+.mini{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
+.mini small{color:var(--tx2)}
+.mini.on{background:linear-gradient(160deg,#F5C451,#DE9A2B);border-color:transparent}
+.mini.on b,.mini.on small{color:#14210F}
+.mini.on.tgt{background:linear-gradient(160deg,#3FBF7A,#1F8A52)}
+.mini.on.tgt b,.mini.on.tgt small{color:#06180E}
+.mini.on.pen{background:linear-gradient(160deg,#FF7A88,#D6404F)}
+.mini.on.pen b,.mini.on.pen small{color:#2B0A0E}
+
+/* trace */
+.trace span{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10);color:var(--tx)}
+.trace span.pending{background:rgba(245,196,81,.16);border-color:rgba(245,196,81,.34);color:var(--gold)}
+.trace span.tgt{background:rgba(63,191,122,.18);border-color:rgba(63,191,122,.34);color:var(--lime)}
+.trace span.pen{background:rgba(255,107,122,.16);border-color:rgba(255,107,122,.32);color:var(--rose)}
+
+/* floating dock */
+.tabbar{left:10px;right:10px;bottom:calc(9px + env(safe-area-inset-bottom));max-width:500px;
+  border-radius:22px;padding-bottom:0;background:rgba(10,22,16,.82);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.10);box-shadow:0 14px 36px rgba(0,0,0,.5)}
+.tabbar button{padding:11px 0 10px;border-top:none;border-radius:16px;margin:6px 4px;font-size:14px;color:#7E9C8C}
+.tabbar button.on{background:linear-gradient(160deg,rgba(143,227,175,.20),rgba(63,191,122,.08));
+  color:var(--lime);border-top:none;box-shadow:inset 0 0 0 1px rgba(143,227,175,.28)}
+
+/* tables / sections */
+.sechead .t{color:#fff;letter-spacing:.12em}
+.sechead .n{color:var(--tx2)}
+.tr{border-top:1px solid rgba(255,255,255,.07)}
+.th{color:var(--tx2)}
+.note{color:var(--tx2)}
+.gd{color:var(--lime)!important} .bd{color:var(--rose)!important} .md{color:var(--gold)!important}
+.ghost{color:var(--rose)} .ghost.g{color:var(--lime)}
+
+/* cards + overlays */
+#savedcard{border-radius:16px;bottom:calc(100px + env(safe-area-inset-bottom));
+  background:linear-gradient(135deg,#1F8A52,#0F5A33);border:1px solid rgba(143,227,175,.3);
+  box-shadow:0 16px 40px rgba(0,0,0,.5)}
+#savedcard.penalty{background:linear-gradient(135deg,#C22B38,#7E1520);border-color:rgba(255,107,122,.35)}
+#savedcard button{background:rgba(0,0,0,.3);color:var(--gold)}
+.toast{bottom:calc(100px + env(safe-area-inset-bottom));border-radius:12px;background:rgba(8,18,13,.93);
+  border:1px solid rgba(255,255,255,.12);color:var(--tx);backdrop-filter:blur(12px)}
+#fillsheet{background:linear-gradient(180deg,#12211A,#0B1712);border:1px solid rgba(255,255,255,.10);
+  border-radius:22px 22px 0 0;color:var(--tx)}
+#fillsheet .ft{color:#fff} #fillsheet .fx{color:var(--tx2)}
+input,input[type=date]{background:rgba(255,255,255,.06)!important;color:var(--tx)!important;
+  border:1px solid rgba(255,255,255,.14)!important;border-radius:12px!important}
+.parbtn{background:rgba(255,255,255,.04)!important;border-top-color:rgba(255,255,255,.07)!important;
+  border-right-color:rgba(255,255,255,.07)!important;color:var(--tx)}
+.parbtn small{color:var(--tx2)} .parbtn b{color:#fff}
+
+/* svg graphics */
+.gfx{width:100%;display:block}
+.gfxwrap{margin:12px 12px 0;padding:12px 12px 8px;border-radius:18px;background:var(--card);
+  border:1px solid var(--cardln);box-shadow:0 10px 30px rgba(0,0,0,.32)}
+.gfxwrap .gtitle{font-family:var(--cond);font-size:15px;letter-spacing:.16em;color:var(--tx2);
+  font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between}
+@keyframes dash{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.anim{animation:fadein .3s ease both}
+.gaugeval{font-family:var(--cond);font-weight:700;fill:#fff}
+.gaugelbl{font-family:var(--mono);fill:#8FA79A}
 </style>
 </head>
 <body>
@@ -223,7 +372,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v14"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v17"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -350,7 +499,8 @@ function setGreenPt(part){
     let g=c.greens[ui.hole];
     if(!g||g.lat!=null) g = g? {center:{lat:g.lat,lng:g.lng}} : {};  // migrate legacy single-point tag
     g[part]={lat:f.lat,lng:f.lng};
-    c.greens[ui.hole]=g; save();
+    g.src=g.src||{}; g.src[part]="gps";
+    c.greens[ui.hole]=g; S.anchor={lat:f.lat,lng:f.lng}; save();
     const n=backfillDists(c.id, ui.hole);
     toast(`Green ${ui.hole} ${part.toUpperCase()} tagged ±${Math.round(f.acc)}m ✓${n?` · ${n} yardages backfilled`:""}`);
     renderGreenDist();
@@ -373,7 +523,8 @@ function backfillDists(courseId, hole){
 // normalized green points for a hole: {front?,center?,back?}; legacy {lat,lng} = center
 function greenPts(c,h){
   const g=c&&c.greens[h]; if(!g)return null;
-  return g.lat!=null? {center:{lat:g.lat,lng:g.lng}} : g;
+  if(g.lat!=null)return {center:{lat:g.lat,lng:g.lng}};
+  return (g.front||g.center||g.back)?g:null;
 }
 // best single reference point for carry math: center, else midpoint(front,back), else whichever exists
 function greenCenter(c,h){
@@ -499,6 +650,126 @@ function closeMap(){
   mapLayers=[]; mapCtx=null;
   const ov=document.getElementById("mapov"); if(ov)ov.remove();
   render();
+}
+
+
+// ---------- satellite green setup (pre-tag from the couch) ----------
+let gmObj=null, gmCtx=null, gmLayers=[];
+function openGreenMap(courseId,hole){
+  const c=S.courses.find(x=>x.id===courseId); if(!c)return;
+  if(typeof L==="undefined"){toast("Map needs a data connection");return;}
+  gmCtx={courseId,hole,sel:null};
+  closeGreenMap(true);
+  const ctr=gmCenter(c,hole);
+  const ov=document.createElement("div");
+  ov.id="mapov";
+  ov.innerHTML=`<div class="hint" id="gmhint">Green ${hole} — tap F / C / B, then pan crosshair</div>
+    <div class="cross" id="gmcross" style="display:none"></div><div id="mapdiv"></div>
+    <div class="chips" id="gmchips"></div>
+    <div class="bar">
+      <button style="background:#2A3A31;color:var(--tx)" onclick="gmHole(-1)">‹ HOLE</button>
+      <button id="gmok" style="background:linear-gradient(160deg,#3FBF7A,#1F8A52);color:#06180E;display:none" onclick="gmConfirm()">✓ PLACE</button>
+      <button style="background:#2A3A31;color:var(--tx)" onclick="closeGreenMap()">DONE</button>
+      <button style="background:#2A3A31;color:var(--tx)" onclick="gmHole(1)">HOLE ›</button>
+    </div>`;
+  document.body.appendChild(ov);
+  gmObj=L.map("mapdiv",{center:[ctr.lat,ctr.lng],zoom:ctr.z,zoomControl:false,attributionControl:false});
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19}).addTo(gmObj);
+  gmDraw(); gmChips();
+}
+// centring: this hole's tags > nearest tagged green > live GPS > saved anchor > London approx
+function gmCenter(c,hole){
+  const g=greenPts(c,hole);
+  if(g){const p=g.center||g.front||g.back; return {lat:p.lat,lng:p.lng,z:19};}
+  let near=null,bd=99;
+  for(let h=1;h<=18;h++){
+    const gg=greenPts(c,h); if(!gg)continue;
+    const d=Math.abs(h-hole); if(d<bd){bd=d;near=gg.center||gg.front||gg.back;}
+  }
+  if(near)return {lat:near.lat,lng:near.lng,z:18};
+  if(ui.gpsFix)return {lat:ui.gpsFix.lat,lng:ui.gpsFix.lng,z:15};
+  if(S.anchor)return {lat:S.anchor.lat,lng:S.anchor.lng,z:16};
+  return {lat:43.0355,lng:-81.2955,z:14}; // 465 Sunningdale Rd W area — pan to the course first time
+}
+function gmDraw(){
+  gmLayers.forEach(l=>gmObj.removeLayer(l)); gmLayers=[];
+  const c=S.courses.find(x=>x.id===gmCtx.courseId);
+  const g=greenPts(c,gmCtx.hole);
+  if(g)for(const k of ["front","center","back"]){
+    if(!g[k])continue;
+    const byMap=(g.src&&g.src[k])==="map";
+    const col=byMap?"#F5C451":"#3FBF7A";
+    gmLayers.push(L.marker([g[k].lat,g[k].lng],{icon:L.divIcon({className:"",
+      html:`<div style="background:${col};color:#0A1410;border-radius:50%;width:24px;height:24px;
+        display:flex;align-items:center;justify-content:center;font:700 12px 'IBM Plex Mono',monospace;
+        border:2px solid #0A1410;box-shadow:0 2px 6px rgba(0,0,0,.6)">${k[0].toUpperCase()}</div>`,
+      iconSize:[24,24],iconAnchor:[12,12]})}).addTo(gmObj));
+  }
+  if(g&&g.front&&g.back)gmLayers.push(L.polyline([[g.front.lat,g.front.lng],[g.back.lat,g.back.lng]],
+    {color:"#F5C451",weight:2,dashArray:"5 5",opacity:.85}).addTo(gmObj));
+  // neighbouring greens for orientation
+  for(let h=1;h<=18;h++){
+    if(h===gmCtx.hole)continue;
+    const gg=greenPts(c,h); if(!gg)continue;
+    const p=gg.center||gg.front||gg.back;
+    gmLayers.push(L.circleMarker([p.lat,p.lng],{radius:5,color:"rgba(255,255,255,.5)",
+      fillColor:"rgba(255,255,255,.25)",fillOpacity:.6,weight:1}).addTo(gmObj));
+  }
+}
+function gmChips(){
+  const c=S.courses.find(x=>x.id===gmCtx.courseId);
+  const g=greenPts(c,gmCtx.hole)||{};
+  const dep=(g.front&&g.back)?Math.round(haversineYds(g.front,g.back)):null;
+  document.getElementById("gmchips").innerHTML=
+    ["front","center","back"].map(k=>{
+      const has=!!g[k]; const src=(g.src&&g.src[k])||"";
+      return `<button class="${gmCtx.sel===k?"sel":""}" onclick="gmSelect('${k}')">${k.toUpperCase()}${has?` ✓${src==="gps"?"gps":"map"}`:""}</button>`;
+    }).join("")
+    +`<button onclick="gmClear()" style="color:#FF6B7A">clear hole</button>`
+    +(dep?`<span style="flex-shrink:0;padding:9px 12px;font-family:var(--mono);font-size:12px;color:#8FE3AF">depth ${dep}y</span>`:"");
+  const hint=document.getElementById("gmhint"),cross=document.getElementById("gmcross"),ok=document.getElementById("gmok");
+  if(gmCtx.sel){
+    hint.textContent=`Hole ${gmCtx.hole} — centre crosshair on ${gmCtx.sel.toUpperCase()} of green`;
+    cross.style.display="block"; ok.style.display="block";
+  }else{
+    hint.textContent=`Green ${gmCtx.hole} — tap F / C / B, then pan crosshair`;
+    cross.style.display="none"; ok.style.display="none";
+  }
+}
+function gmSelect(k){
+  gmCtx.sel=(gmCtx.sel===k)?null:k;
+  const c=S.courses.find(x=>x.id===gmCtx.courseId);
+  const g=greenPts(c,gmCtx.hole);
+  if(gmCtx.sel&&g&&g[gmCtx.sel])gmObj.panTo([g[gmCtx.sel].lat,g[gmCtx.sel].lng]);
+  gmChips();
+}
+function gmConfirm(){
+  const c=S.courses.find(x=>x.id===gmCtx.courseId); if(!c||!gmCtx.sel)return;
+  const p=gmObj.getCenter();
+  let g=c.greens[gmCtx.hole];
+  if(!g||g.lat!=null) g = g? {center:{lat:g.lat,lng:g.lng}} : {};
+  g[gmCtx.sel]={lat:p.lat,lng:p.lng};
+  g.src=g.src||{}; g.src[gmCtx.sel]="map";
+  c.greens[gmCtx.hole]=g;
+  S.anchor={lat:p.lat,lng:p.lng};
+  save();
+  const n=backfillDists(c.id,gmCtx.hole);
+  gmCtx.sel=null; gmDraw(); gmChips();
+  toast(`Green ${gmCtx.hole} placed from map ✓${n?` · ${n} yardages backfilled`:""}`);
+}
+function gmClear(){
+  const c=S.courses.find(x=>x.id===gmCtx.courseId); if(!c)return;
+  delete c.greens[gmCtx.hole]; save(); gmCtx.sel=null; gmDraw(); gmChips();
+  toast(`Green ${gmCtx.hole} cleared`);
+}
+function gmHole(step){
+  const h=gmCtx.hole+step; if(h<1||h>18)return;
+  const cid=gmCtx.courseId; closeGreenMap(true); openGreenMap(cid,h);
+}
+function closeGreenMap(quiet){
+  if(gmObj){gmObj.remove();gmObj=null;}
+  gmLayers=[]; const ov=document.getElementById("mapov"); if(ov)ov.remove();
+  if(!quiet){gmCtx=null; render();}
 }
 
 // ---------- actions ----------
@@ -710,6 +981,16 @@ function setPutts(n){
   const a=active(); if(!a)return;
   a.putts[ui.hole]=(a.putts[ui.hole]===n)?undefined:n;
   if(a.putts[ui.hole]===undefined)delete a.putts[ui.hole];
+  // if every stroke is confirmed, the score is arithmetic — enter it and move on
+  const hs=a.shots.filter(s=>s.h===ui.hole);
+  if(a.putts[ui.hole]!=null && hs.length && hs.every(s=>s.r) && a.scores[ui.hole]==null){
+    const sc=hs.length + a.putts[ui.hole] + hs.filter(s=>s.r==="penalty").length;
+    a.scores[ui.hole]=sc; save(); render();
+    const from=ui.hole;
+    toast(`Hole ${from} = ${sc} ✓${from<18?` → Hole ${from+1}`:""}`);
+    if(from<18)setTimeout(()=>{ if(active()&&ui.hole===from)changeHole(from+1); },1200);
+    return;
+  }
   save(); render();
 }
 function setScore(n){
@@ -864,6 +1145,158 @@ function toast(msg,undo){
 }
 function clearToast(){document.getElementById("toastwrap").innerHTML="";}
 
+
+// ============ SVG GRAPHICS LAYER (v16) ============
+const LIECOL={tee:"#8FE3AF",fairway:"#3FBF7A",rough:"#9BA84E",sand:"#E9C46A",trees:"#7A6A55"};
+const RESCOL={target:"#3FBF7A",short:"#E9A23B",long:"#E9A23B",left:"#FF8A5C",right:"#FF8A5C",mishit:"#BFCFC5",penalty:"#FF6B7A"};
+
+// Hole schematic: corridor + green + shot arcs, positioned by remaining yardage
+function holeSVG(round,hole,W){
+  const c=S.courses.find(x=>x.id===round.courseId);
+  const par=c?c.pars[hole-1]:4;
+  const hs=round.shots.filter(s=>s.h===hole);
+  const H=Math.max(210,Math.min(330,150+hs.length*34));
+  // hole length: tee shot distance, else par estimate
+  const teeD=hs.length&&hs[0].d?hs[0].d:(par===3?165:par===4?395:520);
+  const len=Math.max(teeD,60);
+  const padT=26,padB=30,corrW=W*0.34,cx=W/2;
+  const yFor=rem=>padT+(1-Math.max(0,Math.min(1,rem/len)))*(H-padT-padB);
+  const offFor=r=>({left:-corrW*0.62,right:corrW*0.62,target:0,short:0,long:0,mishit:corrW*0.3,penalty:-corrW*0.8}[r]??0);
+  let s='';
+  // rough + fairway corridor
+  s+=`<defs>
+    <linearGradient id="fw" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1E5B38"/><stop offset="100%" stop-color="#2C7A4C"/></linearGradient>
+    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#16311F"/><stop offset="50%" stop-color="#1B3D26"/><stop offset="100%" stop-color="#16311F"/></linearGradient>
+    <radialGradient id="grn"><stop offset="0%" stop-color="#6FE3A2"/><stop offset="100%" stop-color="#2E9A5F"/></radialGradient>
+  </defs>`;
+  s+=`<rect x="0" y="${padT-14}" width="${W}" height="${H-padT-padB+30}" rx="16" fill="url(#rg)"/>`;
+  s+=`<path d="M${cx-corrW/2} ${H-padB} Q${cx-corrW/2-8} ${(H)/2} ${cx-corrW/2+4} ${padT}
+       L${cx+corrW/2-4} ${padT} Q${cx+corrW/2+8} ${(H)/2} ${cx+corrW/2} ${H-padB} Z"
+       fill="url(#fw)" opacity=".92"/>`;
+  // green + pin
+  s+=`<ellipse cx="${cx}" cy="${padT-4}" rx="${corrW*0.44}" ry="15" fill="url(#grn)" opacity=".95"/>`;
+  s+=`<line x1="${cx}" y1="${padT-8}" x2="${cx}" y2="${padT-24}" stroke="#EAF2EC" stroke-width="1.6"/>`;
+  s+=`<path d="M${cx} ${padT-24} L${cx+11} ${padT-20} L${cx} ${padT-16} Z" fill="#FF6B7A"/>`;
+  // tee box
+  s+=`<rect x="${cx-9}" y="${H-padB+3}" width="18" height="7" rx="2" fill="#8FA79A" opacity=".75"/>`;
+  s+=`<text x="${cx}" y="${H-padB+22}" text-anchor="middle" class="gaugelbl" font-size="9">TEE · ${len}y</text>`;
+  // shot arcs
+  const pts=hs.map((sh,i)=>{
+    const rem = sh.d!=null?sh.d:Math.max(0,len-(i+1)*(len/(hs.length+1)));
+    return {x:cx+offFor(i===0?"target":hs[i-1].r), y:yFor(rem), sh, i};
+  });
+  const end={x:cx+offFor(hs.length?hs[hs.length-1].r:"target"), y:padT-4};
+  const all=[...pts,end];
+  for(let i=0;i<all.length-1;i++){
+    const a=all[i],b=all[i+1];
+    const mx=(a.x+b.x)/2+(b.x-a.x)*0.15, my=(a.y+b.y)/2-Math.abs(a.y-b.y)*0.38;
+    const col=pts[i]&&pts[i].sh?(RESCOL[pts[i].sh.r]||"#8FA79A"):"#8FA79A";
+    const dash=pts[i]&&pts[i].sh&&!pts[i].sh.r?"4 4":"0";
+    s+=`<path d="M${a.x} ${a.y} Q${mx} ${my} ${b.x} ${b.y}" fill="none" stroke="${col}"
+         stroke-width="2.4" stroke-dasharray="${dash}" opacity=".9" stroke-linecap="round"/>`;
+  }
+  pts.forEach(p=>{
+    const col=LIECOL[p.sh.lie]||"#8FE3AF";
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="11" fill="#0A1410" stroke="${col}" stroke-width="2.2"/>`;
+    s+=`<text x="${p.x}" y="${p.y+3.6}" text-anchor="middle" font-family="'IBM Plex Mono',monospace"
+         font-size="10" font-weight="700" fill="${col}">${p.i+1}</text>`;
+    if(p.sh.d!=null)s+=`<text x="${p.x+(p.x>cx?16:-16)}" y="${p.y+3}" text-anchor="${p.x>cx?"start":"end"}"
+         class="gaugelbl" font-size="9">${p.sh.d}y</text>`;
+  });
+  return `<svg class="gfx anim" viewBox="0 0 ${W} ${H}" height="${H}">${s}</svg>`;
+}
+
+// radial gauge
+function gaugeSVG(pct,label,col,size){
+  const r=size/2-7,cx=size/2,C=2*Math.PI*r;
+  const off=C*(1-(pct??0)/100);
+  return `<svg class="gfx" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="7"/>
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${col}" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"
+      transform="rotate(-90 ${cx} ${cx})" style="--len:${C};animation:dash .9s ease-out both"/>
+    <text x="${cx}" y="${cx+2}" text-anchor="middle" class="gaugeval" font-size="${size*0.28}">${pct??"—"}${pct!=null?"%":""}</text>
+    <text x="${cx}" y="${cx+size*0.22}" text-anchor="middle" class="gaugelbl" font-size="${size*0.12}"
+      letter-spacing="1">${label}</text></svg>`;
+}
+
+// miss rose: directional distribution for a club
+function roseSVG(dist,W){
+  const H=170,cx=W/2,cy=H*0.62,R=H*0.44;
+  const dirs=[["long",-90],["right",-30],["mishit",30],["short",90],["penalty",150],["left",-150]];
+  const max=Math.max(1,...dirs.map(d=>dist[d[0]]||0));
+  let s=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.08)"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${R*0.5}" fill="none" stroke="rgba(255,255,255,.06)"/>`;
+  dirs.forEach(([k,ang])=>{
+    const n=dist[k]||0; if(!n)return;
+    const len=R*(0.28+0.72*n/max), a=ang*Math.PI/180, w=0.30;
+    const x1=cx+Math.cos(a-w)*len, y1=cy+Math.sin(a-w)*len;
+    const x2=cx+Math.cos(a+w)*len, y2=cy+Math.sin(a+w)*len;
+    s+=`<path d="M${cx} ${cy} L${x1} ${y1} A${len} ${len} 0 0 1 ${x2} ${y2} Z"
+         fill="${RESCOL[k]}" opacity=".82"/>`;
+    s+=`<text x="${cx+Math.cos(a)*(len+13)}" y="${cy+Math.sin(a)*(len+13)+3}" text-anchor="middle"
+         class="gaugelbl" font-size="9.5" fill="${RESCOL[k]}">${n}</text>`;
+  });
+  const t=dist.target||0;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${R*0.24}" fill="#0A1410" stroke="#3FBF7A" stroke-width="2"/>`;
+  s+=`<text x="${cx}" y="${cy+4}" text-anchor="middle" class="gaugeval" font-size="13">${t}</text>`;
+  s+=`<text x="${cx}" y="${cy-R-6}" text-anchor="middle" class="gaugelbl" font-size="9">LONG</text>`;
+  s+=`<text x="${cx}" y="${cy+R+16}" text-anchor="middle" class="gaugelbl" font-size="9">SHORT</text>`;
+  s+=`<text x="${cx-R-4}" y="${cy+3}" text-anchor="end" class="gaugelbl" font-size="9">L</text>`;
+  s+=`<text x="${cx+R+4}" y="${cy+3}" class="gaugelbl" font-size="9">R</text>`;
+  return `<svg class="gfx anim" viewBox="0 0 ${W} ${H}" height="${H}">${s}</svg>`;
+}
+
+// gapping ladder: club distances with gap callouts
+function gapSVG(rows,W){
+  const rs=rows.filter(r=>r.pure).sort((a,b)=>b.pure-a.pure);
+  if(!rs.length)return "";
+  const rowH=22,H=rs.length*rowH+26,maxD=Math.max(...rs.map(r=>r.pure)),L=42,Rp=42;
+  let s=`<line x1="${L}" y1="14" x2="${L}" y2="${H-8}" stroke="rgba(255,255,255,.10)"/>`;
+  rs.forEach((r,i)=>{
+    const y=20+i*rowH, w=(W-L-Rp)*(r.pure/maxD);
+    s+=`<text x="${L-7}" y="${y+4}" text-anchor="end" font-family="'IBM Plex Mono',monospace"
+         font-size="11" font-weight="700" fill="#EAF2EC">${r.cl}</text>`;
+    s+=`<rect x="${L}" y="${y-6}" width="${w}" height="12" rx="6"
+         fill="url(#gapg)" opacity=".95" style="--len:${w};animation:fadein .4s ease both;animation-delay:${i*0.04}s"/>`;
+    s+=`<text x="${L+w+7}" y="${y+4}" font-family="'IBM Plex Mono',monospace" font-size="11"
+         font-weight="700" fill="#8FE3AF">${r.pure}</text>`;
+    if(i<rs.length-1){
+      const gap=r.pure-rs[i+1].pure;
+      if(gap>=18)s+=`<text x="${W-6}" y="${y+rowH/2+4}" text-anchor="end" class="gaugelbl"
+        font-size="9" fill="#FF6B7A">▲${gap}y gap</text>`;
+    }
+  });
+  return `<svg class="gfx anim" viewBox="0 0 ${W} ${H}" height="${H}">
+    <defs><linearGradient id="gapg" x1="0" x2="1"><stop offset="0%" stop-color="#2E9A5F"/>
+    <stop offset="100%" stop-color="#8FE3AF"/></linearGradient></defs>${s}</svg>`;
+}
+
+// score sparkline for trend
+function trendSVG(trend,W){
+  if(trend.length<2)return "";
+  const H=130,P=26,mx=Math.max(...trend.map(t=>t.pct),50),mn=Math.min(...trend.map(t=>t.pct),0);
+  const xF=i=>P+i*((W-P*2)/(trend.length-1));
+  const yF=v=>H-24-((v-mn)/Math.max(1,mx-mn))*(H-52);
+  let pts=trend.map((t,i)=>`${xF(i)},${yF(t.pct)}`).join(" ");
+  let s=`<defs><linearGradient id="trg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="rgba(143,227,175,.42)"/><stop offset="100%" stop-color="rgba(143,227,175,0)"/>
+    </linearGradient></defs>`;
+  s+=`<polygon points="${xF(0)},${H-24} ${pts} ${xF(trend.length-1)},${H-24}" fill="url(#trg)"/>`;
+  s+=`<polyline points="${pts}" fill="none" stroke="#8FE3AF" stroke-width="2.6" stroke-linecap="round"
+       stroke-linejoin="round"/>`;
+  trend.forEach((t,i)=>{
+    s+=`<circle cx="${xF(i)}" cy="${yF(t.pct)}" r="${i===trend.length-1?5:3.6}"
+         fill="${i===trend.length-1?"#F5C451":"#0A1410"}" stroke="#8FE3AF" stroke-width="2"/>`;
+    s+=`<text x="${xF(i)}" y="${yF(t.pct)-11}" text-anchor="middle" class="gaugelbl" font-size="9.5"
+         fill="#EAF2EC">${t.pct}%</text>`;
+    s+=`<text x="${xF(i)}" y="${H-9}" text-anchor="middle" class="gaugelbl" font-size="8.5">${t.date}</text>`;
+  });
+  return `<svg class="gfx anim" viewBox="0 0 ${W} ${H}" height="${H}">${s}</svg>`;
+}
+
 // ---------- render ----------
 function renderStatus(){
   const el=document.getElementById("topstatus");const a=active();
@@ -890,7 +1323,7 @@ function renderGreenDist(){
   }
 }
 function renderTabs(){
-  document.getElementById("tabbar").innerHTML=["log|LOG","round|ROUND","stats|STATS","courses|COURSES"]
+  document.getElementById("tabbar").innerHTML=["log|\u26f3 LOG","round|\ud83d\uddd2 ROUND","stats|\ud83d\udcca STATS","courses|\ud83c\udfcc COURSES"]
     .map(x=>{const[k,l]=x.split("|");return `<button class="${ui.tab===k?"on":""}" onclick="setTab('${k}')">${l}</button>`;}).join("");
 }
 function render(){
@@ -964,7 +1397,11 @@ function rLog(){
     </div>
   </div>
 
-  ${holeShots.length?`<div style="padding:12px 16px 0">
+  ${holeShots.length?`<div class="gfxwrap">
+    <div class="gtitle"><span>HOLE ${ui.hole} · PLAYED</span><span style="letter-spacing:0;color:var(--tx2)">${holeShots.length} strokes</span></div>
+    ${holeSVG(a,ui.hole,Math.min(480,(window.innerWidth||390)-48))}
+  </div>
+  <div style="padding:12px 16px 0">
     <div class="label">HOLE ${ui.hole} REVIEW — CONFIRM EACH STROKE, ANY ORDER</div>
     ${holeShots.map((s,i)=>{
       const ad=s.d??autoDist(a,s);
@@ -1028,7 +1465,7 @@ function rLog(){
   </div>
 
   <div style="padding:8px 16px 0;display:flex;align-items:center;gap:8px">
-    <span class="label" style="margin:0">SCORE</span>
+    <span class="label" style="margin:0">SCORE <span style="letter-spacing:0;font-size:9px;font-weight:400">(auto after putts)</span></span>
     ${(()=>{const p=par||4;const sugg=suggScore(a,ui.hole);const sel=a.scores[ui.hole];
       return Array.from({length:7},(_,i)=>Math.max(1,p-2)+i).map(n=>{
         const rel=n-p;const relTxt=rel===0?"E":rel>0?"+"+rel:rel;
@@ -1195,30 +1632,16 @@ function rStats(){
       <div style="font-family:var(--cond);font-size:11.5px;letter-spacing:.16em;color:var(--faint);font-weight:600">${x[1]}</div></div>`).join("")}
   </div>
 
-  ${trend.length>1?`<div class="sechead"><span class="t">EXECUTION TREND</span></div>
-  <div style="padding:0 16px 6px">
-    <div style="display:flex;align-items:flex-end;gap:8px;height:100px">
-      ${trend.map((t,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:12px;font-weight:700;color:${t.pct>=40?"var(--green)":"var(--gold)"}">${t.pct}%</span>
-        <div style="width:100%;height:${Math.max(4,t.pct*1.5)}px;border-radius:4px 4px 0 0;background:${i===trend.length-1?"var(--green)":"#B9C7BC"}"></div></div>`).join("")}
-    </div>
-    <div style="display:flex;gap:8px;border-top:2px solid var(--ink);padding-top:5px">
-      ${trend.map(t=>`<div style="flex:1;text-align:center"><div style="font-size:9.5px">${t.date}</div><div style="font-size:9px;color:var(--faint)">${t.name}</div></div>`).join("")}
-    </div>
+  ${trend.length>1?`<div class="gfxwrap">
+    <div class="gtitle"><span>EXECUTION TREND</span><span style="letter-spacing:0">on-target % by round</span></div>
+    ${trendSVG(trend,Math.min(480,(window.innerWidth||390)-48))}
   </div>`:""}
 
-  ${dr.length?`<div class="sechead"><span class="t">DRIVER · SLICE WATCH</span><span class="n">${dr.length} tee balls</span></div>
-  <div style="padding:0 16px 4px">
-    <div style="display:flex;height:24px;border-radius:6px;overflow:hidden;border:1.5px solid var(--line)">
-      ${["target","left","right","short","long","mishit","penalty"].filter(k=>drDist[k]).map(k=>{
-        const col={target:"var(--green)",left:"#8A3B12",right:"#B5651D",short:"var(--gold)",long:"var(--gold)",mishit:"#5B4632",penalty:"var(--flag)"}[k];
-        return `<div style="flex:${drDist[k]};background:${col}"></div>`;}).join("")}
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px 14px;padding-top:7px">
-      ${["target","left","right","short","long","mishit","penalty"].filter(k=>drDist[k]).map(k=>{
-        const col={target:"var(--green)",left:"#8A3B12",right:"#B5651D",short:"var(--gold)",long:"var(--gold)",mishit:"#5B4632",penalty:"var(--flag)"}[k];
-        return `<span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:${col};display:inline-block"></span>${RL[k]} ${drDist[k]}</span>`;}).join("")}
-    </div>
+  ${dr.length?`<div class="gfxwrap">
+    <div class="gtitle"><span>DRIVER · MISS PATTERN</span><span style="letter-spacing:0">${dr.length} tee balls</span></div>
+    ${roseSVG(drDist,Math.min(480,(window.innerWidth||390)-48))}
+    <div style="font-size:10.5px;color:var(--tx2);text-align:center;padding-top:4px">
+      centre = on target · petal length = frequency</div>
   </div>`:""}
 
   ${(()=>{ // scoring stats from rounds with scores entered
@@ -1231,18 +1654,20 @@ function rStats(){
     const scr=sum("scrOpp")?Math.round(sum("scr")/sum("scrOpp")*100):null;
     const sav=sum("ssOpp")?Math.round(sum("ss")/sum("ssOpp")*100):null;
     const per18=holes?((vsPar/holes)*18):null;
-    const item=(v,l)=>`<div style="flex:1;padding:10px 0 8px;text-align:center;border-right:1px solid var(--line)">
-      <div style="font-weight:700;font-size:20px">${v??"—"}</div>
-      <div style="font-family:var(--cond);font-size:11px;letter-spacing:.14em;color:var(--faint);font-weight:600">${l}</div></div>`;
-    return `<div class="sechead"><span class="t">SCORING</span><span class="n">${holes} holes scored</span></div>
-    <div style="display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
-      ${item(per18!=null?(per18>0?"+":"")+per18.toFixed(1):null,"VS PAR / 18")}
-      ${item(fw!=null?fw+"%":null,"FAIRWAYS")}
-      ${item(gir!=null?gir+"%":null,"GIR")}
-      ${item(scr!=null?scr+"%":null,"SCRAMBLE")}
-      ${item(sav!=null?sav+"%":null,"SAND SAVE")}
-    </div>
+    return `<div class="gfxwrap">
+      <div class="gtitle"><span>SCORING</span><span style="letter-spacing:0">${holes} holes · ${per18!=null?`<b style="color:${per18>0?"var(--rose)":"var(--lime)"}">${per18>0?"+":""}${per18.toFixed(1)}</b> vs par/18`:""}</span></div>
+      <div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:4px">
+        ${gaugeSVG(fw,"FAIRWAY","#8FE3AF",84)}
+        ${gaugeSVG(gir,"GIR","#3FBF7A",84)}
+        ${gaugeSVG(scr,"SCRAMBLE","#F5C451",84)}
+        ${gaugeSVG(sav,"SAND","#E9A23B",84)}
+      </div></div>
     <div class="note">All derived — no extra taps: fairways from tee-shot results, GIR from score−putts vs par−2, scrambling = par-or-better on missed greens, sand saves = par-or-better on holes with a greenside sand shot.</div>`;})()}
+
+  ${clubRows.filter(r=>r.pure).length>1?`<div class="gfxwrap">
+    <div class="gtitle"><span>GAPPING</span><span style="letter-spacing:0">pure yards · on-target only</span></div>
+    ${gapSVG(clubRows,Math.min(480,(window.innerWidth||390)-48))}
+  </div>`:""}
 
   <div class="sechead"><span class="t">CLUB BOOK</span><span class="n">PURE = rangefinder · GPS = measured carry</span></div>
   <div class="th"><span style="width:38px">CLUB</span><span style="width:26px;text-align:right">N</span>
@@ -1287,7 +1712,7 @@ function rStats(){
 // ---------- COURSES ----------
 function rCourses(){
   return `<div class="sechead"><span class="t">COURSES</span></div>
-  <div class="note" style="padding-top:0">Pars are locked to the official scorecards. ⛳ shows greens tagged — tag them from the LOG screen while standing on each green.</div>
+  <div class="note" style="padding-top:0">Pars are locked to the official scorecards. Tap any hole to place its green on the satellite map — <span style="color:#F5C451">gold ⛳</span> = placed from map, <span style="color:#3FBF7A">green ⛳</span> = confirmed by GPS on the course. Map tags work immediately; walking the green later overwrites with a GPS fix.</div>
   ${S.courses.map(c=>`<div class="card">
     <div style="padding:10px 12px;background:#F1EFE4;display:flex;justify-content:space-between;align-items:center">
       ${ui.renaming===c.id
@@ -1295,14 +1720,19 @@ function rCourses(){
             style="font-family:var(--cond);font-size:18px;font-weight:700;border:1px solid var(--line);border-radius:5px;padding:3px 8px;flex:1;margin-right:8px">`
         :`<span style="font-family:var(--cond);font-size:19px;font-weight:700">${esc(c.name)}</span>`}
       <span style="display:flex;gap:10px;align-items:center">
-        <span style="font-size:12px;color:var(--faint)">Par ${c.pars.reduce((a,b)=>a+b,0)} · ⛳${Object.keys(c.greens).length}</span>
+        <span style="font-size:12px;color:var(--tx2)">Par ${c.pars.reduce((a,b)=>a+b,0)} · ⛳${Object.keys(c.greens).filter(h=>greenPts(c,h)).length}/18</span>
         <button class="ghost g" style="font-size:11px" onclick="startRename('${c.id}')">rename</button>
       </span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(9,1fr)">
-      ${c.pars.map((p,i)=>`<div class="parbtn" style="background:${p===3?"#EAF2EC":p===5?"#F6EFDC":"#fff"};${(i+1)%9!==0?"border-right:1px solid var(--line)":""}">
-        <small>${i+1}${c.greens[i+1]?" ⛳":""}</small><b>${p}</b></div>`).join("")}
+      ${c.pars.map((p,i)=>{const g=greenPts(c,i+1);
+        const src=g?(["front","center","back"].some(k=>g[k]&&(g.src&&g.src[k])==="gps")?"gps":"map"):null;
+        return `<button class="parbtn" onclick="openGreenMap('${c.id}',${i+1})">
+        <small>${i+1}${src==="gps"?' <span style="color:#3FBF7A">⛳</span>':src==="map"?' <span style="color:#F5C451">⛳</span>':""}</small><b>${p}</b></button>`;}).join("")}
     </div>
+    <button onclick="openGreenMap('${c.id}',1)" style="width:100%;padding:12px 0;border:none;
+      border-top:1px solid rgba(255,255,255,.10);background:rgba(143,227,175,.10);color:#8FE3AF;
+      font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.1em">🛰 SET UP GREENS ON SATELLITE MAP</button>
   </div>`).join("")}
   <div style="padding:16px"><button class="ghost g" onclick="exportCSV()">Export all data to CSV ↓</button></div>`;
 }
