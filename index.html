@@ -380,7 +380,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v24"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v25"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -445,7 +445,7 @@ function load(){
         d.parsVersion=PARS_VERSION;
         try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}
       }
-      (d.rounds||[]).forEach(r=>{ if(!r.scores)r.scores={}; if(!r.putts)r.putts={}; if(!r.cands)r.cands=[]; });
+      (d.rounds||[]).forEach(r=>{ if(!r.scores)r.scores={}; if(!r.putts)r.putts={}; if(!r.cands)r.cands=[]; if(!r.leave)r.leave={}; });
       if(!("logMode" in d))d.logMode="quick";
       if(d.basemap==="clar")d.basemap="on"; // Clarity retired: imagery predates course changes
       return d;
@@ -834,7 +834,7 @@ function closeGreenMap(quiet){
 // ---------- actions ----------
 function startRound(){
   const c=S.courses.find(x=>x.id===ui.pickCourse)||S.courses[0];
-  const r={id:uid(),courseId:c.id,courseName:c.name,date:ui.pickDate,ts:Date.now(),shots:[],putts:{},scores:{},cands:[]};
+  const r={id:uid(),courseId:c.id,courseName:c.name,date:ui.pickDate,ts:Date.now(),shots:[],putts:{},scores:{},cands:[],leave:{}};
   S.rounds.push(r);S.activeId=r.id;save();
   ui.hole=1;ui.dist="";ui.club=null;ui.lie="tee";
   getFix(); render();
@@ -1069,18 +1069,31 @@ function greenRadiusYds(c,h){
 }
 // infer {r,why} for a shot from its pin, the next pin (or ball-end), and the green
 function inferResult(round,shot){
-  if(shot.lat==null)return null;
   const c=S.courses.find(x=>x.id===round.courseId);
   const G=greenRef(c,shot.h,round);
   const same=round.shots.filter(s=>s.h===shot.h);
   const idx=same.findIndex(s=>s.id===shot.id);
   const nxt=same[idx+1];
   let endPt=null;
-  if(shot.el!=null)endPt={lat:shot.el,lng:shot.elng};
-  else if(nxt&&nxt.lat!=null)endPt={lat:nxt.lat,lng:nxt.lng};
-  else if(idx===same.length-1&&round.putts&&round.putts[shot.h]!=null&&G)
-    return {r:"target",why:"last stroke before putting"};
-  if(!endPt||!G)return null;
+  if(shot.lat!=null){
+    if(shot.el!=null)endPt={lat:shot.el,lng:shot.elng};
+    else if(nxt&&nxt.lat!=null)endPt={lat:nxt.lat,lng:nxt.lng};
+    else if(idx===same.length-1&&round.putts&&round.putts[shot.h]!=null&&G)
+      return {r:"target",why:"last stroke before putting"};
+  }
+  if(!endPt||!G){
+    // distance-only chain: safe to call it on-target if it finished on the green
+    if(shot.d!=null){
+      let after=null;
+      if(nxt&&nxt.d!=null)after=nxt.d;
+      else if(idx===same.length-1)after=leaveYds(round,shot.h);
+      if(after!=null){
+        const R=greenRadiusYds(c,shot.h);
+        if(after<=R)return {r:"target",why:`finished ${Math.round(after)}y from pin`};
+      }
+    }
+    return null;
+  }
 
   const E=toXY(endPt,shot), T=toXY(G,shot);
   const tLen=Math.hypot(T.x,T.y); if(tLen<1)return null;
@@ -1296,6 +1309,9 @@ function setStatCourse(c){ui.statCourse=c;render();}
 
 // ---------- carries & SG ----------
 function shotCarry(round,shot){
+  // 0) rangefinder chain is the most accurate source when both yardages exist
+  const rf=carryFromYardages(round,shot);
+  if(rf!=null)return rf;
   if(shot.lat==null)return null;
   // 1) explicit ball-mark from the map wins
   if(shot.el!=null)return Math.round(haversineYds(shot,{lat:shot.el,lng:shot.elng}));
@@ -1305,13 +1321,39 @@ function shotCarry(round,shot){
     // 2) next shot's GPS pin = where the ball ended
     const nxt=same[idx+1];
     if(nxt.lat!=null)return Math.round(haversineYds(shot,nxt));
-  }else{
-    // 3) last full shot of the hole: fall back to tagged green center
+  }else if(shot.lat!=null){
+    // 3) last full shot of the hole: fall back to today's pin reference
     const c=S.courses.find(x=>x.id===round.courseId);
-    const gc=greenCenter(c,shot.h);
+    const gc=greenRef(c,shot.h,round);
     if(gc)return Math.round(haversineYds(shot,gc));
   }
   return null;
+}
+// leave = how far the ball finished from the hole after the last full shot (stored in feet)
+function leaveYds(round,hole){
+  const f=round.leave&&round.leave[hole];
+  return f!=null?f/3:null;
+}
+function carryFromYardages(round,shot){
+  if(shot.d==null)return null;
+  const same=round.shots.filter(s=>s.h===shot.h);
+  const idx=same.findIndex(s=>s.id===shot.id);
+  const nxt=same[idx+1];
+  if(nxt&&nxt.d!=null){
+    const v=shot.d-nxt.d;
+    return v>0?Math.round(v):null;
+  }
+  if(idx===same.length-1){
+    const lv=leaveYds(round,shot.h);
+    if(lv!=null){ const v=shot.d-lv; return v>0?Math.round(v):null; }
+  }
+  return null;
+}
+function setLeave(ft){
+  const a=active(); if(!a)return;
+  a.leave=a.leave||{};
+  if(a.leave[ui.hole]===ft)delete a.leave[ui.hole]; else a.leave[ui.hole]=ft;
+  save(); render();
 }
 // SG-lite per shot: E(before) - E(after) - 1 (modelled end state on final shot of hole)
 function shotSG(round,shot){
@@ -1709,6 +1751,13 @@ function rLog(){
     </div>
   </div>`}
 
+  <div style="padding:10px 16px 0">
+    <div class="label">LEAVE — HOW FAR FROM THE HOLE AFTER YOUR APPROACH <span style="letter-spacing:0;font-size:10px;font-weight:400">(closes the distance chain)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">
+      ${[2,5,10,15,20,30,45,60].map(ft=>`<button class="chip" style="padding:8px 0;font-size:12px;${(a.leave&&a.leave[ui.hole])===ft?"background:linear-gradient(160deg,#F5C451,#DE9A2B);color:#14210F;border-color:transparent;font-weight:700":""}" onclick="setLeave(${ft})">${ft}'</button>`).join("")}
+    </div>
+  </div>
+
   <div style="padding:10px 16px 0;display:flex;align-items:center;gap:8px">
     <span class="label" style="margin:0">PUTTS</span>
     ${[0,1,2,3,4].map(n=>`<button class="chip" style="flex:1;padding:8px 0;${putts===n?"background:var(--sage);color:var(--paper);border-color:var(--sage);font-weight:700":""}" onclick="setPutts(${n})">${n}</button>`).join("")}
@@ -1966,7 +2015,7 @@ function rStats(){
     <span style="width:40px;text-align:right" class="${l.pen?"bd":""}" ${!l.pen?'style="color:var(--faint)"':""}>${l.pen||"—"}</span>
     <span style="width:100px;text-align:right;font-size:10.5px;color:var(--faint)">${l.top?RL[l.top[0]]+" ×"+l.top[1]:"—"}</span></div>`).join("")}
 
-  <div class="note">DIST = measured shot distance (position to position) on well-struck shots — the number to club off, equivalent to an Arccos smart distance. TO PIN = the yardage you were facing. Both need shots placed on the map or GPS-pinned; typed yardages fill TO PIN only.</div>
+  <div class="note">DIST = how far the club actually went, on well-struck shots only — the number to club off (Arccos calls this a smart distance). It is computed three ways, best first: rangefinder chain (this yardage minus the next one), GPS/map positions, or shot-to-green. TO PIN = the yardage you were facing. Entering a rangefinder number on every shot plus a LEAVE distance per hole gives the most accurate club distances available — better than GPS.</div>
 
   ${sgN?`<div class="sechead"><span class="t">STROKES GAINED — LITE</span><span class="n">per round vs scratch model</span></div>
   <div class="th"><span style="flex:1">CATEGORY</span><span style="width:44px;text-align:right">SHOTS</span><span style="width:88px;text-align:right">SG / ROUND</span></div>
