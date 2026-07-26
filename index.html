@@ -380,7 +380,7 @@ const WEST_PARS = [4,3,4,3,5,5,3,4,4,4,4,4,4,3,4,5,4,3]; // par 70
 const PARS_VERSION = 2;
 
 const KEY = "gsl3";
-const APP_VERSION = "v18"; // keep in sync with sw.js CACHE version
+const APP_VERSION = "v24"; // keep in sync with sw.js CACHE version
 
 // ---------- Broadie-style scratch baselines (expected strokes to hole out) ----------
 // distance in yards -> expected strokes; linear interpolation between anchors
@@ -445,8 +445,9 @@ function load(){
         d.parsVersion=PARS_VERSION;
         try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}
       }
-      (d.rounds||[]).forEach(r=>{ if(!r.scores)r.scores={}; if(!r.putts)r.putts={}; });
+      (d.rounds||[]).forEach(r=>{ if(!r.scores)r.scores={}; if(!r.putts)r.putts={}; if(!r.cands)r.cands=[]; });
       if(!("logMode" in d))d.logMode="quick";
+      if(d.basemap==="clar")d.basemap="on"; // Clarity retired: imagery predates course changes
       return d;
     }
   }catch(e){}
@@ -556,7 +557,7 @@ function greenDists(){
 // ---------- hole map: trace + place any shot ----------
 let mapObj=null, mapCtx=null; // mapCtx = {roundId, hole, sel} ; sel = shot id | "end" | null
 function openMap(){ const a=active(); if(!a){toast("Start a round first");return;} openMapFor(a.id, ui.hole); }
-function openMapFor(roundId, hole){
+function openMapFor(roundId, hole, guided){
   const r=S.rounds.find(x=>x.id===roundId); if(!r)return;
   const holeShots=r.shots.filter(s=>s.h===hole);
   if(!holeShots.length){toast("No shots on this hole yet");return;}
@@ -565,7 +566,8 @@ function openMapFor(roundId, hole){
   const firstPin=holeShots.find(s=>s.lat!=null);
   const ctr = greenCenter(c,hole) || (firstPin?{lat:firstPin.lat,lng:firstPin.lng}:null) || ui.gpsFix;
   if(!ctr){toast("No position yet — tap ⟳ first");return;}
-  mapCtx={roundId, hole, sel:null};
+  mapCtx={roundId, hole, sel:null, guided:!!guided};
+  if(guided){ const u=holeShots.find(s=>s.lat==null); if(u)mapCtx.sel=u.id; }
   const ov=document.createElement("div");
   ov.id="mapov";
   ov.innerHTML=`<div class="hint" id="maphint">Hole ${hole} — tap a shot below to place it</div>
@@ -622,7 +624,8 @@ function renderMapChips(){
     +`<button class="${mapCtx.sel==="end"?"sel":""}" onclick="mapSelect('end')">● BALL END</button>`;
   const hint=document.getElementById("maphint"), cross=document.getElementById("mapcross"), ok=document.getElementById("mapok");
   if(mapCtx.sel){
-    const label=mapCtx.sel==="end"?"final ball position":"shot "+(holeShots.findIndex(s=>s.id===mapCtx.sel)+1)+" — where you hit FROM";
+    const _s=holeShots.find(s=>s.id===mapCtx.sel);
+    const label=mapCtx.sel==="end"?"final ball position":`shot ${holeShots.findIndex(s=>s.id===mapCtx.sel)+1} — where you hit the ${_s?_s.c:""}`;
     hint.textContent="Tap the map at "+label;
     cross.style.display="block"; ok.style.display="block";
   }else{
@@ -652,9 +655,22 @@ function mapPlace(p){
     if(s){s.lat=p.lat; s.lng=p.lng;}
   }
   save();
-  mapCtx.sel=null;
+  if(mapCtx.guided){
+    const nxt=r.shots.filter(s=>s.h===mapCtx.hole).find(s=>s.lat==null);
+    mapCtx.sel=nxt?nxt.id:null;
+    if(!nxt){
+      let n=0;
+      r.shots.filter(s=>s.h===mapCtx.hole).forEach(s=>{
+        if(s.d==null){const ad=autoDist(r,s); if(ad!=null){s.d=ad;s.dsrc="map";n++;}}
+      });
+      save(); drawHole(); renderMapChips();
+      toast(n?`All placed ✓ — ${n} yardages computed`:"All shots placed ✓");
+      return;
+    }
+  } else mapCtx.sel=null;
   drawHole(); renderMapChips();
-  toast("Placed ✓");
+  const s2=r.shots.find(x=>x.id===mapCtx.sel);
+  toast(mapCtx.guided&&s2?`Placed ✓ — now tap where you hit the ${s2.c}`:"Placed ✓");
 }
 function closeMap(){
   if(mapObj){mapObj.remove();mapObj=null;}
@@ -667,9 +683,8 @@ function closeMap(){
 
 // ---------- basemaps ----------
 const BASEMAPS=[
-  {id:"on",  name:"Ontario 16cm · 2025", url:"https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_Imagery/Ontario_Imagery_Web_Map_Service/MapServer/tile/{z}/{y}/{x}", maxNative:20},
-  {id:"esri",name:"Esri World Imagery",  url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxNative:19},
-  {id:"clar",name:"Esri Clarity",        url:"https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxNative:19},
+  {id:"on",  name:"Ontario 16cm · spr 2025", url:"https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_Imagery/Ontario_Imagery_Web_Map_Service/MapServer/tile/{z}/{y}/{x}", maxNative:20},
+  {id:"esri",name:"Esri World · older",      url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxNative:19},
 ];
 function curBase(){ return BASEMAPS.find(b=>b.id===(S.basemap||"on"))||BASEMAPS[0]; }
 function addBase(map){
@@ -677,8 +692,10 @@ function addBase(map){
   let errs=0;
   const layer=L.tileLayer(b.url,{maxZoom:22,maxNativeZoom:b.maxNative}).addTo(map);
   layer.on("tileerror",()=>{
-    if(++errs===6&&b.id!=="esri"){ S.basemap="esri"; save(); toast("Imagery unavailable — switched to Esri");
-      map.removeLayer(layer); addBase(map); }
+    if(++errs===8&&b.id!=="esri"){ S.basemap="esri"; save();
+      toast("⚠ Ontario imagery not responding — using Esri (older)");
+      map.removeLayer(layer); addBase(map);
+      const btn=document.getElementById("lyrbtn"); if(btn)btn.textContent="🛰 "+curBase().name; }
   });
   return layer;
 }
@@ -767,6 +784,7 @@ function gmChips(){
       return `<button class="${gmCtx.sel===k?"sel":""}" onclick="gmSelect('${k}')">${k.toUpperCase()}${has?` ✓${src==="gps"?"gps":"map"}`:""}</button>`;
     }).join("")
     +`<button onclick="gmClear()" style="color:#FF6B7A">clear hole</button>`
+    +`<button onclick="cycleBase('green')" style="color:#8FE3AF">🛰 ${curBase().name}</button>`
     +(dep?`<span style="flex-shrink:0;padding:9px 12px;font-family:var(--mono);font-size:12px;color:#8FE3AF">depth ${dep}y</span>`:"");
   const hint=document.getElementById("gmhint"),cross=document.getElementById("gmcross"),ok=document.getElementById("gmok");
   if(gmCtx.sel){
@@ -816,12 +834,12 @@ function closeGreenMap(quiet){
 // ---------- actions ----------
 function startRound(){
   const c=S.courses.find(x=>x.id===ui.pickCourse)||S.courses[0];
-  const r={id:uid(),courseId:c.id,courseName:c.name,date:ui.pickDate,ts:Date.now(),shots:[],putts:{},scores:{}};
+  const r={id:uid(),courseId:c.id,courseName:c.name,date:ui.pickDate,ts:Date.now(),shots:[],putts:{},scores:{},cands:[]};
   S.rounds.push(r);S.activeId=r.id;save();
   ui.hole=1;ui.dist="";ui.club=null;ui.lie="tee";
   getFix(); render();
 }
-function endRound(){S.activeId=null;save();ui.tab="stats";render();}
+function endRound(){S.activeId=null;save();stopAuto();ui.tab="stats";render();}
 function switchCourse(){
   const a=active(); if(!a)return;
   const idx=S.courses.findIndex(c=>c.id===a.courseId);
@@ -889,13 +907,23 @@ function logQuick(cl){
   const shotNo=a.shots.filter(s=>s.h===ui.hole).length;
   render();
   savedCard(shot, shotNo);
-  getFix(f=>{ if(f&&f.acc<40){shot.lat=f.lat;shot.lng=f.lng;save();} }, 6000, 6);
+  if(S.logMode!=="card")   // per-hole entry: you're not standing where you hit
+    getFix(f=>{ if(f&&f.acc<40){shot.lat=f.lat;shot.lng=f.lng;save();} }, 6000, 6);
 }
-// distance to green center from a shot's GPS pin (what the rangefinder would have read, ± pin position)
+// reference point on the green, honouring today's pin position (F/M/B)
+function greenRef(c,h,round){
+  const g=greenPts(c,h); if(!g)return null;
+  const pos=(round&&round.pinPos)||"M";
+  if(pos==="F"&&g.front)return g.front;
+  if(pos==="B"&&g.back)return g.back;
+  return greenCenter(c,h);
+}
+function setPin(p){ const a=active(); if(!a)return; a.pinPos=p; save(); render(); toast("Pin: "+({F:"front",M:"middle",B:"back"})[p]); }
+// distance from a shot's position to today's pin reference
 function autoDist(round,shot){
   if(shot.lat==null)return null;
   const c=S.courses.find(x=>x.id===round.courseId);
-  const gc=greenCenter(c,shot.h); if(!gc)return null;
+  const gc=greenRef(c,shot.h,round); if(!gc)return null;
   const d=Math.round(haversineYds(shot,gc));
   return (d>=15&&d<=280)?d:null;
 }
@@ -946,11 +974,161 @@ function fillResult(resKey){
 function closeFillDom(){["fillsheet","fillscrim"].forEach(i=>{const e=document.getElementById(i);if(e)e.remove();});}
 function closeFill(){closeFillDom();fillCtx=null;render();}
 
+
+
+// ============ AUTO-PIN: dwell detection ============
+// The cart stops where the ball is. We can't feel a swing (phone is on the cart,
+// not your body) but we CAN notice "stopped here a while" and bank the position.
+// Position is the perishable data; the club is what you can still recall at the tee.
+let autoWatch=null, dwell=null;
+const DWELL_MS=25000, DWELL_RADIUS_M=9, NEW_PIN_YDS=22;
+function toggleAuto(){
+  S.autoPin=!S.autoPin; save();
+  if(S.autoPin){ startAuto(); toast("Auto-pin ON — keep the app open; costs battery"); }
+  else { stopAuto(); toast("Auto-pin off"); }
+  render();
+}
+function startAuto(){
+  if(!navigator.geolocation||autoWatch!=null||!active())return;
+  autoWatch=navigator.geolocation.watchPosition(onAutoPos,()=>{},
+    {enableHighAccuracy:true,maximumAge:4000,timeout:25000});
+}
+function stopAuto(){
+  if(autoWatch!=null){navigator.geolocation.clearWatch(autoWatch);autoWatch=null;}
+  dwell=null;
+}
+function onAutoPos(p){
+  const f={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};
+  ui.gpsFix={lat:f.lat,lng:f.lng,acc:f.acc}; ui.gpsAt=f.t;
+  renderStatus(); renderGreenDist();
+  if(f.acc>25)return;                                  // too coarse to trust
+  if(!dwell||haversineYds(dwell,f)/1.09361>DWELL_RADIUS_M){
+    dwell={lat:f.lat,lng:f.lng,t0:f.t,n:1,sLat:f.lat,sLng:f.lng,fired:false};
+    return;
+  }
+  dwell.n++; dwell.sLat+=f.lat; dwell.sLng+=f.lng;
+  if(!dwell.fired && f.t-dwell.t0>=DWELL_MS){
+    dwell.fired=true;
+    addCandidate(dwell.sLat/dwell.n, dwell.sLng/dwell.n);
+  }
+}
+function addCandidate(lat,lng){
+  const a=active(); if(!a)return;
+  a.cands=a.cands||[];
+  const here={lat,lng};
+  // ignore if it coincides with something already recorded on this hole
+  const near=[...a.shots.filter(s=>s.h===ui.hole&&s.lat!=null),
+              ...a.cands.filter(c=>c.h===ui.hole)]
+             .some(o=>haversineYds(o,here)<NEW_PIN_YDS);
+  if(near)return;
+  a.cands.push({id:uid(),h:ui.hole,lat,lng,ts:Date.now()});
+  save(); render();
+  toast("📍 Auto-pin dropped — assign a club at the tee");
+}
+function candAssign(cid,club){
+  const a=active(); if(!a||!a.cands)return;
+  const ci=a.cands.findIndex(x=>x.id===cid); if(ci<0)return;
+  const cd=a.cands[ci];
+  const shot={id:uid(),h:cd.h,d:null,c:club,lie:"fairway",r:null,ts:cd.ts,lat:cd.lat,lng:cd.lng};
+  let ins=a.shots.findIndex(s=>s.ts>cd.ts); if(ins<0)ins=a.shots.length;
+  a.shots.splice(ins,0,shot);
+  const hs=a.shots.filter(s=>s.h===cd.h);
+  if(hs[0].id===shot.id)shot.lie="tee";
+  a.cands.splice(ci,1); save(); render();
+  toast(`${club} assigned to auto-pin ✓`);
+}
+function candDrop(cid){
+  const a=active(); if(!a||!a.cands)return;
+  a.cands=a.cands.filter(x=>x.id!==cid); save(); render();
+  toast("Auto-pin dismissed");
+}
+
+// ============ GEOMETRIC RESULT INFERENCE ============
+function toXY(o,ref){
+  return {x:(o.lng-ref.lng)*111320*Math.cos(ref.lat*Math.PI/180), y:(o.lat-ref.lat)*110540};
+}
+const M2Y=1.09361;
+function maxReachYds(){
+  let mx=0;
+  for(const cl of S.clubs){
+    const ss=S.rounds.flatMap(r=>r.shots).filter(s=>s.c===cl&&s.r==="target"&&s.d);
+    if(ss.length<3)continue;
+    mx=Math.max(mx,ss.reduce((a,s)=>a+s.d,0)/ss.length);
+  }
+  return mx?mx+15:245;
+}
+function clubPureYds(cl){
+  const ss=S.rounds.flatMap(r=>r.shots).filter(s=>s.c===cl&&s.r==="target"&&s.d);
+  if(ss.length<3)return null;
+  return ss.reduce((a,s)=>a+s.d,0)/ss.length;
+}
+function greenRadiusYds(c,h){
+  const g=greenPts(c,h);
+  if(g&&g.front&&g.back)return Math.max(10,haversineYds(g.front,g.back)/2+6);
+  return 16;
+}
+// infer {r,why} for a shot from its pin, the next pin (or ball-end), and the green
+function inferResult(round,shot){
+  if(shot.lat==null)return null;
+  const c=S.courses.find(x=>x.id===round.courseId);
+  const G=greenRef(c,shot.h,round);
+  const same=round.shots.filter(s=>s.h===shot.h);
+  const idx=same.findIndex(s=>s.id===shot.id);
+  const nxt=same[idx+1];
+  let endPt=null;
+  if(shot.el!=null)endPt={lat:shot.el,lng:shot.elng};
+  else if(nxt&&nxt.lat!=null)endPt={lat:nxt.lat,lng:nxt.lng};
+  else if(idx===same.length-1&&round.putts&&round.putts[shot.h]!=null&&G)
+    return {r:"target",why:"last stroke before putting"};
+  if(!endPt||!G)return null;
+
+  const E=toXY(endPt,shot), T=toXY(G,shot);
+  const tLen=Math.hypot(T.x,T.y); if(tLen<1)return null;
+  const ux=T.x/tLen, uy=T.y/tLen;
+  const along=(E.x*ux+E.y*uy)*M2Y;
+  const cross=(T.x*E.y-T.y*E.x);
+  const lateral=Math.abs(-uy*E.x+ux*E.y)*M2Y;
+  const dBefore=tLen*M2Y;
+  const dAfter=haversineYds(endPt,G);
+  const carry=haversineYds(shot,endPt);
+  const R=greenRadiusYds(c,shot.h);
+
+  if(dAfter<=R)return {r:"target",why:`finished ${Math.round(dAfter)}y from centre`};
+  const pure=clubPureYds(shot.c);
+  if(pure&&carry>0&&carry<pure*0.55)
+    return {r:"mishit",why:`only ${Math.round(carry)}y vs ${Math.round(pure)}y typical`};
+  const goingForGreen = dBefore<=maxReachYds();
+  const latThresh=Math.max(11,carry*0.07);
+  if(lateral>latThresh && (!goingForGreen || lateral>Math.abs(dBefore-along)))
+    return {r:cross>0?"left":"right",why:`${Math.round(lateral)}y ${cross>0?"left":"right"} of line`};
+  if(goingForGreen){
+    if(dBefore-along>R)return {r:"short",why:`${Math.round(dBefore-along)}y short of centre`};
+    if(along-dBefore>R)return {r:"long",why:`${Math.round(along-dBefore)}y past centre`};
+  }
+  return {r:"target",why:`${Math.round(carry)}y, ${Math.round(lateral)}y off line`};
+}
+function lieAfter(r){
+  return ({target:"fairway",left:"rough",right:"rough",mishit:"rough",
+           short:"rough",long:"rough",penalty:"trees"})[r]||"fairway";
+}
+function acceptHole(hole){
+  const a=active(); if(!a)return;
+  const hs=a.shots.filter(s=>s.h===hole);
+  let n=0;
+  hs.forEach((s,i)=>{
+    if(!s.r){ const inf=inferResult(a,s); if(inf){s.r=inf.r;n++;} }
+    if(i>0 && !s.lieSet){ const prev=hs[i-1]; if(prev.r)s.lie=lieAfter(prev.r); }
+    if(s.r&&s.d==null){const ad=autoDist(a,s); if(ad!=null){s.d=ad;s.dsrc="gps";}}
+  });
+  save(); render();
+  toast(n?`${n} stroke${n>1?"s":""} confirmed ✓ — fix sand/trees if any`:"Nothing to infer — need GPS pins or a next shot");
+}
+
 // ----- inline hole review (quick mode): edit any stroke, any order -----
 function rvShot(sid){const a=active();return a&&a.shots.find(x=>x.id===sid);}
 function rvLie(sid,l){
   const s=rvShot(sid); if(!s)return;
-  s.lie=l; save();
+  s.lie=l; s.lieSet=true; save();
   document.querySelectorAll(`[data-sid="${sid}"] [data-rvlie]`).forEach(b=>b.classList.toggle("on",b.dataset.rvlie===l));
 }
 function rvRes(sid,rk){
@@ -970,6 +1148,13 @@ function rvRes(sid,rk){
     card.classList.toggle("done",!!s.r);
     card.classList.toggle("pending",!s.r);
   }
+}
+function nextHole(){ if(ui.hole<18)changeHole(ui.hole+1); }
+function rvSetD(sid,v){
+  const s=rvShot(sid); if(!s)return;
+  const n=parseInt(v,10);
+  if(isNaN(n)){s.d=null;s.dsrc=null;} else {s.d=Math.max(1,Math.min(650,n));s.dsrc="edit";}
+  save(); rvYdUI(sid,s);
 }
 function rvD(sid,delta){
   const s=rvShot(sid); if(!s)return;
@@ -1292,7 +1477,7 @@ function roseSVG(dist,W){
 
 // gapping ladder: club distances with gap callouts
 function gapSVG(rows,W){
-  const rs=rows.filter(r=>r.pure).sort((a,b)=>b.pure-a.pure);
+  const rs=rows.filter(r=>r.dist).map(r=>({...r,pure:r.dist})).sort((a,b)=>b.pure-a.pure);
   if(!rs.length)return "";
   const rowH=22,H=rs.length*rowH+26,maxD=Math.max(...rs.map(r=>r.pure)),L=42,Rp=42;
   let s=`<line x1="${L}" y1="14" x2="${L}" y2="${H-8}" stroke="rgba(255,255,255,.10)"/>`;
@@ -1343,7 +1528,7 @@ function renderStatus(){
   const el=document.getElementById("topstatus");const a=active();
   let g="";
   if(ui.gpsFix&&Date.now()-ui.gpsAt<120000)g=` · GPS±${Math.round(ui.gpsFix.acc)}m`;
-  el.textContent=`${APP_VERSION} · ${a?"LIVE":"IDLE"}${g}`;
+  el.textContent=`${APP_VERSION} · ${a?"LIVE":"IDLE"}${S.autoPin&&a?" 📍":""}${g}`;
   el.style.color=a?"#F0B429":"#8FA093";
 }
 function renderGreenDist(){
@@ -1421,8 +1606,9 @@ function rLog(){
   </div>
 
   <div class="modebar">
-    <button class="${S.logMode==="quick"?"on":""}" onclick="setLogMode('quick')">⚡ QUICK — 1 TAP</button>
-    <button class="${S.logMode!=="quick"?"on":""}" onclick="setLogMode('full')">⌨ FULL DETAIL</button>
+    <button class="${S.logMode==="card"?"on":""}" onclick="setLogMode('card')">📋 PER HOLE</button>
+    <button class="${S.logMode==="quick"?"on":""}" onclick="setLogMode('quick')">⚡ AT BALL</button>
+    <button class="${S.logMode==="full"?"on":""}" onclick="setLogMode('full')">⌨ FULL</button>
   </div>
 
   ${S.logMode!=="quick"&&holeShots.length?`<div style="padding:8px 16px 0">
@@ -1430,29 +1616,39 @@ function rLog(){
     ${holeShots.some(s=>!s.r)?`<div style="font-size:10.5px;color:#8A6D1A;padding-top:4px">tap an amber shot to fill lie & result</div>`:""}
   </div>`:""}
 
-  ${S.logMode==="quick"?`
+  ${S.logMode==="quick"||S.logMode==="card"?`
+  ${S.logMode==="quick"?`<div style="padding:8px 16px 0;display:flex;gap:8px">
+    <button class="chip ${S.autoPin?"on":""}" style="flex:1;padding:9px 0;font-family:var(--cond);font-size:14px;font-weight:700"
+      onclick="toggleAuto()">${S.autoPin?"📍 AUTO-PIN ON":"📍 AUTO-PIN OFF"}</button>
+    <button class="chip" style="flex:0 0 52px;padding:9px 0" onclick="refreshGPS()">⟳</button>
+  </div>`:""}
   <div style="padding:10px 16px 0">
-    <div class="label">TAP CLUB AS YOU PLAY <span style="letter-spacing:0;font-size:10px;font-weight:400">(drops GPS pin — details below, anytime)</span></div>
+    <div class="label">${S.logMode==="card"?`TAP EACH CLUB YOU USED <span style="letter-spacing:0;font-size:10px;font-weight:400">(in order, at the next tee)</span>`:`TAP CLUB AS YOU PLAY <span style="letter-spacing:0;font-size:10px;font-weight:400">(drops GPS pin)</span>`}</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">
       ${S.clubs.map(cl=>`<button class="bigclub" style="padding:15px 0;font-size:19px" onclick="logQuick('${cl}')">${cl}</button>`).join("")}
     </div>
   </div>
 
-  ${holeShots.length?`<div class="gfxwrap">
+  ${(holeShots.length||(a.cands||[]).some(cd=>cd.h===ui.hole))?`${holeShots.length?`<div class="gfxwrap">
     <div class="gtitle"><span>HOLE ${ui.hole} · PLAYED</span><span style="letter-spacing:0;color:var(--tx2)">${holeShots.length} strokes</span></div>
     ${holeSVG(a,ui.hole,Math.min(480,(window.innerWidth||390)-48))}
-  </div>
+  </div>`:""}
   <div style="padding:12px 16px 0">
-    <div class="label">HOLE ${ui.hole} REVIEW — CONFIRM EACH STROKE, ANY ORDER</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+      <span class="label" style="margin:0">HOLE ${ui.hole} REVIEW</span>
+      ${holeShots.some(s=>!s.r)?`<button onclick="acceptHole(${ui.hole})" style="margin-left:auto;padding:8px 13px;border-radius:9px;border:1px solid rgba(143,227,175,.45);background:linear-gradient(160deg,rgba(63,191,122,.28),rgba(31,138,82,.16));color:#8FE3AF;font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.07em">✓✓ ACCEPT ALL</button>`:""}
+    </div>
     ${holeShots.map((s,i)=>{
       const ad=s.d??autoDist(a,s);
+      const inf=s.r?null:inferResult(a,s);
       return `<div class="rev ${s.r?"done":"pending"}" data-sid="${s.id}">
       <div class="rl1"><b>${i+1} · ${esc(s.c)}</b>
         <span class="ryd">
           <button onclick="rvD('${s.id}',-5)">−</button>
-          <span class="val">${s.d??(ad?ad:"—")}${(s.d??ad)!=null?"y":""}<small>${s.d==null&&ad?"auto?":s.dsrc==="gps"?"auto":s.dsrc==="edit"?"edited":"&nbsp;"}</small></span>
+          <span class="val"><input inputmode="numeric" value="${s.d??(ad??"")}" placeholder="—" onchange="rvSetD('${s.id}',this.value)" style="width:44px;text-align:center;font-family:var(--mono);font-weight:700;font-size:15px;background:transparent;border:none;color:#8FE3AF;padding:0"><small>${s.d==null&&ad?"auto?":s.dsrc==="gps"?"auto":s.dsrc==="edit"?"typed":"yards"}</small></span>
           <button onclick="rvD('${s.id}',5)">+</button>
         </span>
+        ${s.lat==null?`<button onclick="openMapFor('${a.id}',${ui.hole},true)" title="place on map" style="background:none;border:none;color:#F5C451;font-size:14px;padding:0 3px">🛰</button>`:""}
         <button onclick="rvDel('${s.id}')" style="background:none;border:none;color:#B8B5A4;font-size:17px;padding:0 2px">×</button>
       </div>
       <div class="minirow" style="grid-template-columns:repeat(5,1fr)">
@@ -1461,10 +1657,23 @@ function rLog(){
       <div class="minirow" style="grid-template-columns:repeat(7,1fr)">
         ${RESULTS.map(x=>{const IC={target:"◎",short:"↓",long:"↑",left:"←",right:"→",mishit:"✕",penalty:"⚠"}[x.key];
           const LB={target:"TARGET",short:"SHORT",long:"LONG",left:"LEFT",right:"RIGHT",mishit:"FAT/TH",penalty:"PENAL"}[x.key];
-          const on=s.r===x.key;
-          return `<button data-rvres="${x.key}" class="mini ${on?"on":""} ${on&&x.key==="target"?"tgt":""} ${on&&x.key==="penalty"?"pen":""}" onclick="rvRes('${s.id}','${x.key}')"><b>${IC}</b><small>${LB}</small></button>`;}).join("")}
+          const on=s.r===x.key; const sg=inf&&inf.r===x.key;
+          return `<button data-rvres="${x.key}" class="mini ${on?"on":""} ${on&&x.key==="target"?"tgt":""} ${on&&x.key==="penalty"?"pen":""}" ${sg?'style="border-color:rgba(245,196,81,.85);box-shadow:0 0 0 1px rgba(245,196,81,.5) inset"':""} onclick="rvRes('${s.id}','${x.key}')"><b>${IC}</b><small>${LB}</small></button>`;}).join("")}
       </div>
+      ${inf?`<div style="font-size:10px;color:#F5C451;padding-top:5px">GPS suggests <b>${RL[inf.r].toUpperCase()}</b> — ${inf.why}</div>`:""}
     </div>`;}).join("")}
+    ${(a.cands||[]).filter(cd=>cd.h===ui.hole).map(cd=>{
+      const gc=greenCenter(c,cd.h); const dg=gc?Math.round(haversineYds(cd,gc)):null;
+      return `<div class="rev" style="border-style:dashed;border-color:rgba(245,196,81,.55)">
+        <div class="rl1"><b style="color:#F5C451">📍 AUTO-PIN</b>
+          <span style="margin-left:auto;font-size:11px;color:var(--tx2)">${dg?dg+"y to grn · ":""}${new Date(cd.ts).toLocaleTimeString("en-CA",{hour:"numeric",minute:"2-digit"})}</span>
+          <button onclick="candDrop('${cd.id}')" style="background:none;border:none;color:#B8B5A4;font-size:17px;padding:0 4px">×</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--tx2);padding-bottom:5px">you stopped here — which club?</div>
+        <div class="minirow" style="grid-template-columns:repeat(6,1fr)">
+          ${S.clubs.map(cl=>`<button class="mini" onclick="candAssign('${cd.id}','${cl}')"><b>${cl}</b></button>`).join("")}
+        </div>
+      </div>`;}).join("")}
   </div>`:""}`:`
   <div class="step ${stage==="dist"?"next":""}" id="step-dist" style="margin:8px 6px 0;padding:8px 10px 4px">
     <div style="display:flex;gap:12px;align-items:stretch">
@@ -1513,6 +1722,25 @@ function rLog(){
         return `<button class="chip" style="flex:1;padding:5px 0 3px;line-height:1.2;${sel===n?"background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:700":n===sugg?"border-color:var(--gold)":""}" onclick="setScore(${n})">${n}<span style="display:block;font-size:8.5px;color:${sel===n?"#9DB0A2":rel<0?"var(--green)":rel>0?"var(--flag)":"var(--faint)"}">${relTxt}</span></button>`;}).join("");})()}
   </div>
   ${(()=>{const sugg=suggScore(a,ui.hole);return sugg!=null&&a.scores[ui.hole]==null?`<div style="padding:4px 16px 0;font-size:10.5px;color:var(--gold)">suggested from your logging: ${sugg} (gold outline)</div>`:"";})()}
+
+  ${holeShots.length&&holeShots.some(s=>s.lat==null)?`<div style="padding:12px 16px 0">
+    <button onclick="openMapFor('${a.id}',${ui.hole},true)" style="width:100%;padding:14px 0;border-radius:12px;
+      border:1px solid rgba(245,196,81,.5);background:linear-gradient(160deg,rgba(245,196,81,.22),rgba(222,154,43,.10));
+      color:#F5C451;font-family:var(--cond);font-size:18px;font-weight:700;letter-spacing:.08em">
+      🛰 PLACE ${holeShots.filter(s=>s.lat==null).length} SHOT${holeShots.filter(s=>s.lat==null).length>1?"S":""} ON MAP → GET YARDAGES</button>
+  </div>`:""}
+
+  <div style="padding:10px 16px 0;display:flex;align-items:center;gap:7px">
+    <span class="label" style="margin:0">PIN</span>
+    ${[["F","FRONT"],["M","MIDDLE"],["B","BACK"]].map(([k,l])=>`<button class="chip" style="flex:1;padding:8px 0;font-family:var(--cond);font-size:14px;font-weight:700;${(a.pinPos||"M")===k?"background:linear-gradient(160deg,#F5C451,#DE9A2B);color:#14210F;border-color:transparent":""}" onclick="setPin('${k}')">${l}</button>`).join("")}
+  </div>
+
+  ${ui.hole<18?`<div style="padding:12px 16px 0">
+    <button onclick="nextHole()" style="width:100%;padding:15px 0;border-radius:12px;border:none;
+      background:linear-gradient(160deg,#3FBF7A,#1F8A52);color:#06180E;font-family:var(--cond);
+      font-size:21px;font-weight:700;letter-spacing:.1em;box-shadow:0 6px 18px rgba(63,191,122,.3)">
+      HOLE ${ui.hole+1} ›</button>
+  </div>`:""}
 
   <div style="padding:10px 16px 0;display:flex;gap:6px;align-items:center">
     <span class="label" style="margin:0;flex:0 0 auto">TAG GRN ${ui.hole}</span>
@@ -1613,12 +1841,15 @@ function rStats(){
     const ss=byClub[cl];const wd=ss.filter(x=>x.s.d);
     const t=ss.filter(x=>x.s.r==="target");const td=t.filter(x=>x.s.d);
     const carries=ss.map(x=>shotCarry(x.r,x.s)).filter(v=>v!=null);
+    const goodCarries=t.map(x=>shotCarry(x.r,x.s)).filter(v=>v!=null);
     const avg=wd.length?Math.round(wd.reduce((a,x)=>a+x.s.d,0)/wd.length):null;
     const pure=td.length?Math.round(td.reduce((a,x)=>a+x.s.d,0)/td.length):null;
-    const gps=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
+    const dist=goodCarries.length?Math.round(goodCarries.reduce((a,b)=>a+b,0)/goodCarries.length)
+              :(carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null);
+    const nD=goodCarries.length||carries.length;
     const miss={};ss.forEach(x=>{if(x.s.r!=="target")miss[x.s.r]=(miss[x.s.r]||0)+1;});
     const top=Object.entries(miss).sort((a,b)=>b[1]-a[1])[0];
-    return {cl,n:ss.length,avg,pure,gps,pct:Math.round(t.length/ss.length*100),top};
+    return {cl,n:ss.length,avg,pure,dist,nD,pct:Math.round(t.length/ss.length*100),top};
   });
 
   // lies
@@ -1705,22 +1936,22 @@ function rStats(){
       </div></div>
     <div class="note">All derived — no extra taps: fairways from tee-shot results, GIR from score−putts vs par−2, scrambling = par-or-better on missed greens, sand saves = par-or-better on holes with a greenside sand shot.</div>`;})()}
 
-  ${clubRows.filter(r=>r.pure).length>1?`<div class="gfxwrap">
-    <div class="gtitle"><span>GAPPING</span><span style="letter-spacing:0">pure yards · on-target only</span></div>
+  ${clubRows.filter(r=>r.dist).length>1?`<div class="gfxwrap">
+    <div class="gtitle"><span>GAPPING</span><span style="letter-spacing:0">measured distance · well-struck only</span></div>
     ${gapSVG(clubRows,Math.min(480,(window.innerWidth||390)-48))}
   </div>`:""}
 
-  <div class="sechead"><span class="t">CLUB BOOK</span><span class="n">PURE = rangefinder · GPS = measured carry</span></div>
+  <div class="sechead"><span class="t">CLUB BOOK</span><span class="n">DIST = how far it goes · TO PIN = what you faced</span></div>
   <div class="th"><span style="width:38px">CLUB</span><span style="width:26px;text-align:right">N</span>
-    <span style="width:44px;text-align:right">AVG</span><span style="width:48px;text-align:right">PURE</span>
-    <span style="width:44px;text-align:right">GPS</span><span style="width:46px;text-align:right">ON-T%</span>
+    <span style="width:52px;text-align:right">DIST</span><span style="width:32px;text-align:right">n</span>
+    <span style="width:50px;text-align:right">TO PIN</span><span style="width:46px;text-align:right">ON-T%</span>
     <span style="flex:1;text-align:right">TOP MISS</span></div>
   ${clubRows.map(r=>`<div class="tr">
     <span style="width:38px;font-weight:700">${esc(r.cl)}</span>
     <span style="width:26px;text-align:right;color:var(--faint)">${r.n}</span>
-    <span style="width:44px;text-align:right">${r.avg??"—"}</span>
-    <span style="width:48px;text-align:right;font-weight:700;color:var(--green)">${r.pure??"—"}</span>
-    <span style="width:44px;text-align:right;color:var(--sage)">${r.gps??"—"}</span>
+    <span style="width:52px;text-align:right;font-weight:700;font-size:15px;color:#8FE3AF">${r.dist??"—"}</span>
+    <span style="width:32px;text-align:right;font-size:10px;color:var(--tx2)">${r.nD||"—"}</span>
+    <span style="width:50px;text-align:right;color:var(--sage)">${r.pure??"—"}</span>
     <span style="width:46px;text-align:right" class="${r.pct>=50?"gd":r.pct>=35?"md":"bd"}">${r.pct}%</span>
     <span style="flex:1;text-align:right;font-size:10.5px;color:var(--faint)">${r.top?RL[r.top[0]]+" ×"+r.top[1]:"—"}</span></div>`).join("")}
 
@@ -1734,6 +1965,8 @@ function rStats(){
     <span style="width:54px;text-align:right" class="${l.pct>=45?"gd":l.pct>=30?"md":"bd"}">${l.pct}%</span>
     <span style="width:40px;text-align:right" class="${l.pen?"bd":""}" ${!l.pen?'style="color:var(--faint)"':""}>${l.pen||"—"}</span>
     <span style="width:100px;text-align:right;font-size:10.5px;color:var(--faint)">${l.top?RL[l.top[0]]+" ×"+l.top[1]:"—"}</span></div>`).join("")}
+
+  <div class="note">DIST = measured shot distance (position to position) on well-struck shots — the number to club off, equivalent to an Arccos smart distance. TO PIN = the yardage you were facing. Both need shots placed on the map or GPS-pinned; typed yardages fill TO PIN only.</div>
 
   ${sgN?`<div class="sechead"><span class="t">STROKES GAINED — LITE</span><span class="n">per round vs scratch model</span></div>
   <div class="th"><span style="flex:1">CATEGORY</span><span style="width:44px;text-align:right">SHOTS</span><span style="width:88px;text-align:right">SG / ROUND</span></div>
@@ -1753,7 +1986,7 @@ function rStats(){
 // ---------- COURSES ----------
 function rCourses(){
   return `<div class="sechead"><span class="t">COURSES</span></div>
-  <div class="note" style="padding-top:0">Pars are locked to the official scorecards. Tap any hole to place its green on the satellite map — <span style="color:#F5C451">gold ⛳</span> = placed from map, <span style="color:#3FBF7A">green ⛳</span> = confirmed by GPS on the course. Map tags work immediately; walking the green later overwrites with a GPS fix.</div>
+  <div class="note" style="padding-top:0">Pars are locked to the official scorecards. Tap any hole to place its green on the satellite map — <span style="color:#F5C451">gold ⛳</span> = placed from map, <span style="color:#3FBF7A">green ⛳</span> = confirmed by GPS on the course. Map tags work immediately; walking the green later overwrites with a GPS fix. Satellite imagery can predate course changes — any recently built or relocated green won't appear, so tag those with GPS on the course.</div>
   ${S.courses.map(c=>`<div class="card">
     <div style="padding:10px 12px;background:#F1EFE4;display:flex;justify-content:space-between;align-items:center">
       ${ui.renaming===c.id
@@ -1781,6 +2014,7 @@ function rCourses(){
 // ---------- boot ----------
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
 render();
+if(S.autoPin&&active())startAuto();
 </script>
 </body>
 </html>
